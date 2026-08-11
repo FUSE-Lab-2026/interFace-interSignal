@@ -1,0 +1,37 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#signal-guessing {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #111;
+}
+
+canvas {
+  display: block;
+}
+
+.serial-button {
+  width: 132px;
+  height: 32px;
+  border: 1px solid #777;
+  border-radius: 4px;
+  background: #1b1d1e;
+  color: #f0f2ef;
+  font: 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  cursor: pointer;
+}
+
+.serial-button:hover:not(:disabled) {
+  background: #292d2f;
+}
+
+.serial-button:disabled {
+  color: #777;
+  cursor: default;
+}
