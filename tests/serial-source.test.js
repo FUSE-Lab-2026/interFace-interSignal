@@ -10,10 +10,14 @@ const packet = (payload) => {
 
 const qualityPacket = packet([0x02, 0x00]);
 const rawPacket = packet([0x80, 0x02, 0xff, 0x9c]);
+const asicBytes = Array.from({ length: 8 }, (_, index) => index + 1)
+  .flatMap((value) => [value >> 16, value >> 8 & 0xff, value & 0xff]);
+const statePacket = packet([0x04, 42, 0x05, 55, 0x83, 24, ...asicBytes]);
 const chunks = [
   qualityPacket.slice(0, 4),
   Uint8Array.from([...qualityPacket.slice(4), ...rawPacket.slice(0, 3)]),
-  rawPacket.slice(3),
+  Uint8Array.from([...rawPacket.slice(3), ...statePacket.slice(0, 7)]),
+  statePacket.slice(7),
 ];
 
 let openedWith = null;
@@ -70,7 +74,12 @@ const source = vm.runInContext("TGAMSerialSource", context);
   assert.equal(source.getData().signal, 200);
   assert(received.some((value) => value.signal === 0));
   assert(received.some((value) => value.raw === -100));
-  assert.equal(source.getStats().validPackets, 2);
+  assert(received.some((value) => value.attention === 42 && value.meditation === 55));
+  assert.equal(source.getData().attention, 42);
+  assert.equal(source.getData().meditation, 55);
+  assert.equal(source.getData().bands.delta, 1);
+  assert.equal(source.getData().bands.midGamma, 8);
+  assert.equal(source.getStats().validPackets, 3);
   assert.equal(source.getStats().rawSamples, 1);
   assert.equal(source.getStatus(), "disconnected");
 

@@ -75,11 +75,53 @@ eye-state classifier and does not directly measure eye movement.
 - Therefore 60 Hz electrical interference is excluded from both score formulas.
 - A notch filter is not currently applied.
 
+## Raw EEG
+
+- Source: decoded signed TGAM raw-wave packets
+- No filtering, smoothing, interpolation, or resampling is applied.
+- History retained in memory: latest 1,024 samples
+- Samples displayed: latest 512 samples, representing approximately 1 second
+- Horizontal axis: packet/sample order
+- Vertical display range: fixed at -2,048 to 2,048
+- Values outside that range are visually clipped at the card boundary; the stored
+  raw values are not modified.
+- The latest raw integer is shown in the card corner.
+
+## TGAM band power
+
+- Source: the eight native ASIC EEG power values in TGAM code `0x83` packets
+- Order: delta, theta, low alpha, high alpha, low beta, high beta, low gamma,
+  mid gamma
+- Labels: `D`, `T`, `LA`, `HA`, `LB`, `HB`, `LG`, `MG`
+- Each packet value is transformed for display with `L[i] = log10(1 + Power[i])`.
+- Bar height is normalized within the latest packet:
+  `Height[i] = L[i] / max(L[0] ... L[7])`.
+- Bar opacity uses the same normalized value.
+- No smoothing or calibration is applied.
+
+The graph emphasizes the relative shape across bands in one TGAM update. Bar
+height is not an absolute scale, so the same height can represent different raw
+power values in different packets.
+
+## TGAM Attention and Meditation
+
+- Source: native TGAM eSense Attention code `0x04` and Meditation code `0x05`
+- Native range: 0-100
+- The card uses separate `A` and `M` vertical meters.
+- Filled height and opacity are directly proportional to each native score.
+- No smoothing, interpolation, inversion, or derived calculation is applied.
+- Values remain unavailable until their first packets arrive in the current
+  serial session.
+
 ## Guessing display
 
 - Panel names and formula descriptions are intentionally hidden.
-- Fixed left-to-right order on wide screens and top-to-bottom order on narrow
-  screens: Signal Contact, Movement, Eyes Closed.
+- Cards are identified only as `01` through `06`. Numbered checkboxes independently
+  show or hide each card without revealing its title.
+- Fixed order: Signal Contact, Movement, Eyes Closed, Raw EEG, TGAM band power,
+  TGAM Attention/Meditation.
+- Visible cards reflow to three columns on wide screens, two columns on medium
+  screens, and one scrollable column on narrow screens.
 - Missing/contact-gated values display `--`.
 - Numeric scores remain visible to support comparison and experimentation.
 - These are relative workshop signals, not probabilities or clinical measurements.
