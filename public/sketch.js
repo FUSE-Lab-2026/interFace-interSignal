@@ -64,6 +64,7 @@ const signalGuessingSketch = (p) => {
     const height = getCanvasHeight(p.windowWidth, p.windowHeight, visibleCardIds.size);
     const canvas = p.createCanvas(p.windowWidth, height);
     canvas.parent("signal-guessing");
+    canvas.addClass("signal-canvas");
     p.pixelDensity(Math.min(window.devicePixelRatio || 1, 2));
     p.textFont("monospace");
 
@@ -97,6 +98,10 @@ const signalGuessingSketch = (p) => {
       if (packet.bands) latestBands = { ...packet.bands };
       if (packet.attention !== undefined) attention = packet.attention;
       if (packet.meditation !== undefined) meditation = packet.meditation;
+    });
+
+    document.addEventListener("appviewchange", (event) => {
+      if (event.detail.view === "signals") requestAnimationFrame(resizeForLayout);
     });
   };
 
@@ -136,11 +141,6 @@ const signalGuessingSketch = (p) => {
 
   const drawHeader = () => {
     p.noStroke();
-    p.fill(215);
-    p.textAlign(p.LEFT, p.CENTER);
-    p.textSize(12);
-    p.text("SIGNAL GUESSING", PAGE_PADDING, 28);
-
     const status = TGAMSerialSource.getStatus();
     const connected = TGAMSerialSource.isConnected();
     const stats = TGAMSerialSource.getStats();

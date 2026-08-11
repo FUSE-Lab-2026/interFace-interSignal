@@ -11,6 +11,7 @@ project-YYYY-MM-DD-vN.md
 
 현재 백업:
 
+- `project-2026-08-11-v1.md`: 녹화 tab 추가 직전의 6-card Web Serial MVP 규격
 - `project-2026-08-11-legacy-tgam-eeg-webviz.md`: 기존 `TGAM-EGG-WebViz`의
   Node SerialPort/WebSocket 중심 초기 계획 문서
 

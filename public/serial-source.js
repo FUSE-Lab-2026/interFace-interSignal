@@ -1,6 +1,7 @@
 const TGAMSerialSource = (() => {
   const BAUD_RATE = 57600;
   const packetListeners = new Set();
+  const frameListeners = new Set();
   const supported = "serial" in navigator;
 
   let port = null;
@@ -40,6 +41,10 @@ const TGAMSerialSource = (() => {
     for (const listener of packetListeners) listener(packet);
   };
 
+  const emitFrame = (frame) => {
+    for (const listener of frameListeners) listener(frame);
+  };
+
   const updateRawRate = () => {
     const now = performance.now();
     const elapsed = now - rateWindowStartedAt;
@@ -70,7 +75,7 @@ const TGAMSerialSource = (() => {
     rawRate = 0;
     rateWindowSamples = 0;
     rateWindowStartedAt = performance.now();
-    parser = ThinkGearParser.createParser(handlePacket);
+    parser = ThinkGearParser.createParser(handlePacket, undefined, emitFrame);
   };
 
   const readLoop = async (activePort) => {
@@ -218,6 +223,10 @@ const TGAMSerialSource = (() => {
     onPacket: (listener) => {
       packetListeners.add(listener);
       return () => packetListeners.delete(listener);
+    },
+    onFrame: (listener) => {
+      frameListeners.add(listener);
+      return () => frameListeners.delete(listener);
     },
   };
 })();

@@ -60,7 +60,9 @@ const source = vm.runInContext("TGAMSerialSource", context);
 
 (async () => {
   const received = [];
+  const frames = [];
   source.onPacket((value) => received.push(value));
+  source.onFrame((value) => frames.push(value));
 
   assert.equal(await source.connect(), true);
   await new Promise((resolve) => setImmediate(resolve));
@@ -81,6 +83,9 @@ const source = vm.runInContext("TGAMSerialSource", context);
   assert.equal(source.getData().bands.midGamma, 8);
   assert.equal(source.getStats().validPackets, 3);
   assert.equal(source.getStats().rawSamples, 1);
+  assert.equal(frames.length, 3);
+  assert.equal(frames[1].packet.raw, -100);
+  assert.deepEqual(Array.from(frames[1].frameBytes), Array.from(rawPacket));
   assert.equal(source.getStatus(), "disconnected");
 
   await source.disconnect();

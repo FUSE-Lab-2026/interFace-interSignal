@@ -20,6 +20,43 @@ canvas {
   display: block;
 }
 
+.app-tabs {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  left: 16px;
+  display: flex;
+  height: 32px;
+  border: 1px solid #747879;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.app-tab {
+  width: 72px;
+  border: 0;
+  border-right: 1px solid #747879;
+  background: #17191a;
+  color: #858888;
+  font: 10px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  cursor: pointer;
+}
+
+.app-tab:last-child {
+  border-right: 0;
+}
+
+.app-tab.is-active {
+  background: #d9dcd8;
+  color: #111;
+}
+
+.app-tab:focus-visible,
+.tool-button:focus-visible {
+  outline: 2px solid #f0f2ef;
+  outline-offset: 2px;
+}
+
 .panel-toggles {
   position: absolute;
   z-index: 2;
@@ -88,4 +125,280 @@ canvas {
 .serial-button:disabled {
   color: #777;
   cursor: default;
+}
+
+body[data-view="record"] .panel-toggles,
+body[data-view="record"] .signal-canvas {
+  display: none;
+}
+
+.recording-view[hidden] {
+  display: none;
+}
+
+.recording-view {
+  min-height: 100vh;
+  padding: 104px 16px 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  background: #111;
+  color: #17191a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.camera-panel,
+.record-controls,
+.record-files {
+  border-radius: 4px;
+  background: #f4f4f0;
+}
+
+.camera-panel {
+  min-height: 430px;
+  padding: 28px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 22px;
+}
+
+.camera-frame {
+  position: relative;
+  width: min(100%, 560px);
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid #d3d3cd;
+  background: #deded8;
+}
+
+#camera-preview {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transform: scaleX(-1);
+  background: #deded8;
+}
+
+.camera-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #8a8c89;
+  font-size: 11px;
+}
+
+.capture-canvas {
+  display: none;
+}
+
+.camera-specs {
+  width: min(100%, 560px);
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: #d3d3cd;
+}
+
+.camera-specs div {
+  padding: 10px;
+  background: #e6e6e1;
+}
+
+.camera-specs dt,
+.record-status-grid dt {
+  margin: 0 0 6px;
+  color: #8a8c89;
+  font-size: 9px;
+}
+
+.camera-specs dd,
+.record-status-grid dd {
+  margin: 0;
+  color: #1b1d1e;
+  font-size: 11px;
+}
+
+.record-controls {
+  min-height: 430px;
+  padding: 28px;
+  display: grid;
+  align-content: start;
+  gap: 24px;
+}
+
+.record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tool-button {
+  min-width: 112px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid #777;
+  border-radius: 4px;
+  background: #1b1d1e;
+  color: #f0f2ef;
+  font: 10px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  cursor: pointer;
+}
+
+.tool-button:hover:not(:disabled) {
+  background: #292d2f;
+}
+
+.tool-button:disabled {
+  border-color: #c2c2bc;
+  background: #deded8;
+  color: #999b98;
+  cursor: default;
+}
+
+.record-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.record-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d34a3a;
+}
+
+.record-status-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid #d3d3cd;
+  border-left: 1px solid #d3d3cd;
+}
+
+.record-status-grid div {
+  min-width: 0;
+  padding: 14px;
+  border-right: 1px solid #d3d3cd;
+  border-bottom: 1px solid #d3d3cd;
+}
+
+.record-status-grid dd {
+  overflow-wrap: anywhere;
+  font-size: 20px;
+}
+
+.record-destination {
+  display: grid;
+  gap: 8px;
+  padding-top: 18px;
+  border-top: 1px solid #d3d3cd;
+}
+
+.record-destination span,
+.record-file span {
+  color: #8a8c89;
+  font-size: 9px;
+}
+
+.record-destination output,
+.record-file output {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+
+.record-message {
+  min-height: 34px;
+  margin: 0;
+  color: #6f716e;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.record-message.is-error {
+  color: #a53027;
+}
+
+.record-files {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+}
+
+.record-file {
+  min-width: 0;
+  min-height: 82px;
+  padding: 18px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  border-right: 1px solid #d3d3cd;
+}
+
+.record-file:last-child {
+  border-right: 0;
+}
+
+@media (max-width: 760px) {
+  .recording-view {
+    grid-template-columns: 1fr;
+  }
+
+  .record-files {
+    grid-column: 1;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .record-file:nth-child(2) {
+    border-right: 0;
+  }
+
+  .record-file:nth-child(-n + 2) {
+    border-bottom: 1px solid #d3d3cd;
+  }
+}
+
+@media (max-width: 500px) {
+  .app-tab {
+    width: 68px;
+  }
+
+  .recording-view {
+    padding-top: 104px;
+  }
+
+  .camera-panel,
+  .record-controls {
+    min-height: 0;
+    padding: 18px;
+  }
+
+  .camera-specs,
+  .record-status-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .record-actions .tool-button {
+    flex: 1 1 calc(50% - 8px);
+  }
+
+  .record-files {
+    grid-template-columns: 1fr;
+  }
+
+  .record-file,
+  .record-file:nth-child(2) {
+    border-right: 0;
+    border-bottom: 1px solid #d3d3cd;
+  }
+
+  .record-file:last-child {
+    border-bottom: 0;
+  }
 }

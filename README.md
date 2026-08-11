@@ -47,6 +47,31 @@ Movement and Eyes Closed remain unavailable while TGAM reports poor electrode
 contact. The additional cards display the raw stream and native TGAM packet
 values rather than new inferred scores.
 
+## Record tab
+
+The `Record` tab uses the same browser-owned TGAM connection as the signal cards,
+so the serial port is opened only once. Recording requires desktop Chrome or
+Chromium.
+
+1. Press **Connect TGAM** and select the serial port.
+2. Open `Record` or visit `http://localhost:3000/#record`.
+3. Press **Choose Folder** and grant write access.
+4. Press **Enable Camera** and grant camera access.
+5. Press **Record**, then **Stop** when finished.
+
+Each session writes directly to the selected folder:
+
+- `*-tgam-packets.ndjson`: checksum-valid physical TGAM frames, frame hex,
+  timestamps, decoded fields, and transport-stat events
+- `*-raw-eeg.txt`: unfiltered raw values with sample index and two timestamps
+- `*-camera-240p.webm`: silent 320 x 240, 12 FPS video at a requested 180 kbps
+- `*-session.json`: recording settings, filenames, counts, duration, and final
+  parser statistics
+
+The camera may supply a larger source image, but the recorded stream is always
+downsampled through a 320 x 240 canvas. The browser may choose a slightly
+different actual video bitrate than requested.
+
 Exact formulas, FFT windows, frequency ranges, and limitations are documented in
 [PROCESSING.md](PROCESSING.md).
 
@@ -60,9 +85,11 @@ Exact formulas, FFT windows, frequency ranges, and limitations are documented in
 TGAM serial bytes
   -> browser Web Serial
   -> ThinkGear framing and checksum parser
-  -> raw EEG and signal-quality packet callbacks
-  -> browser FFT-derived signals
-  -> p5.js visualization
+  -> valid physical-frame callbacks
+     -> browser FFT-derived signals -> p5.js visualization
+     -> frame NDJSON + raw EEG text recorder
+
+Web camera -> 320 x 240 canvas -> MediaRecorder -> WebM file
 ```
 
 Node only serves static files on localhost. It does not access the serial port,
@@ -82,12 +109,15 @@ access to the Mac's serial port.
 ## Project structure
 
 ```text
-public/index.html          page entry
+public/index.html          Signals/Record tabs and page entry
 public/serial-source.js    Web Serial lifecycle and packet dispatch
 public/tgam-parser.js      ThinkGear packet framing and checksum parser
 public/derived-signals.js  contact and spectral score calculations
 public/sketch.js           responsive p5 cards, visibility, and visual mappings
 public/style.css           page and serial-button styling
+public/recorder-core.js    recording constants and pure file formatting
+public/recorder.js         folder, camera, TGAM, and session recording lifecycle
+public/tabs.js             hash-addressable in-app view switching
 server.js                  dependency-free localhost static server
 tests/                     parser and mocked Web Serial tests
 ```

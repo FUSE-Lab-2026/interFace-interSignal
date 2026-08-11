@@ -127,3 +127,67 @@ power values in different packets.
 - Missing/contact-gated values display `--`.
 - Numeric scores remain visible to support comparison and experimentation.
 - These are relative workshop signals, not probabilities or clinical measurements.
+
+## Synchronized recording
+
+### Shared source
+
+- `Signals` and `Record` are views within one page and share one
+  `TGAMSerialSource` instance.
+- A second browser page does not independently open the same serial port.
+- The parser emits a frame callback for every checksum-valid physical TGAM frame.
+- Each frame callback contains payload length, checksum, payload bytes, complete
+  frame bytes, and the decoded packet object.
+
+### TGAM frame NDJSON
+
+- Filename: `YYYY-MM-DD_HHmmss_SSS-tgam-packets.ndjson`
+- One JSON object per line
+- `tgam_frame` fields: frame index, Unix milliseconds, elapsed milliseconds,
+  payload length, checksum, complete lowercase hexadecimal frame, and decoded
+  TGAM values
+- `transport_stats` is appended once per second with parser and raw-rate counters.
+- `recording_start` and `recording_stop` delimit the session.
+- Checksum-invalid frames are excluded from `tgam_frame` records; their count is
+  retained in `transport_stats` and the manifest.
+- Text is buffered and written to the selected folder in approximately 64 KiB or
+  one-second batches.
+
+### Raw EEG text
+
+- Filename: `YYYY-MM-DD_HHmmss_SSS-raw-eeg.txt`
+- Source: decoded raw-wave values from the same valid frame callbacks
+- Preprocessing: none
+- Columns: `sample_index`, `elapsed_ms`, `unix_ms`, `raw`
+- Delimiter: tab
+- Comment header records format version, session ID, start time, expected 512 Hz
+  sample rate, and preprocessing state.
+
+### Camera video
+
+- Filename: `YYYY-MM-DD_HHmmss_SSS-camera-240p.webm`
+- Audio: disabled at capture and absent from the recording stream
+- Camera request: ideal 320 x 240, ideal 12 FPS, maximum 15 FPS
+- Output guarantee: each camera frame is redrawn to an exact 320 x 240 canvas
+- Canvas capture: 12 FPS
+- MediaRecorder requested bitrate: 180,000 bits/second
+- Preferred codec order: WebM VP8, WebM VP9, browser WebM fallback
+- MediaRecorder may report an actual bitrate different from the request.
+- Video chunks are written directly to the selected folder as they arrive rather
+  than retained as one in-memory Blob.
+
+### Session manifest
+
+- Filename: `YYYY-MM-DD_HHmmss_SSS-session.json`
+- Records serial/video targets, actual camera settings, selected codec and bitrate,
+  filenames, timestamps, stop reason, frame/raw totals, video bytes, and parser
+  statistics at start and stop.
+- The manifest is written after all three stream files close successfully.
+
+### Stop behavior
+
+- Manual Stop finalizes every stream and then writes the manifest.
+- Serial disconnect, camera end, video error, or file-write error initiates stop.
+- Closing or reloading the page while recording triggers a browser warning.
+- A browser/OS crash before writable streams close can leave the current session
+  incomplete.

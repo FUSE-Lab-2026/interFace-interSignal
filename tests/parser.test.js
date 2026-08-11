@@ -8,9 +8,11 @@ const makePacket = (payload, checksumOffset = 0) => {
 
 const packets = [];
 const diagnostics = [];
+const frames = [];
 const parser = createParser(
   (packet) => packets.push(packet),
-  (diagnostic) => diagnostics.push(diagnostic)
+  (diagnostic) => diagnostics.push(diagnostic),
+  (frame) => frames.push(frame)
 );
 
 const combinedPayload = [
@@ -31,6 +33,8 @@ assert.deepEqual(packets[0], {
   blinkStrength: 99,
   raw: -100,
 });
+assert.deepEqual(frames[0].frameBytes, Array.from(combinedPacket));
+assert.deepEqual(frames[0].packet, packets[0]);
 
 const asicValues = Array.from({ length: 8 }, (_, index) => index + 1);
 const asicBytes = asicValues.flatMap((value) => [value >> 16, value >> 8 & 0xff, value & 0xff]);
@@ -48,6 +52,7 @@ parser.feedChunk(makePacket([0x80, 0x02, 0x00, 0x02]));
 assert.equal(packets.at(-1).raw, 2);
 assert.equal(parser.getStats().validPackets, 4);
 assert.equal(parser.getStats().checksumFailures, 1);
+assert.equal(frames.length, 4);
 assert.equal(diagnostics.at(-1).type, "checksum-failure");
 
 console.log("ThinkGear parser tests passed");

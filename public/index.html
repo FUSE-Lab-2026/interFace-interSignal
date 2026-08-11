@@ -8,8 +8,12 @@
   <link rel="stylesheet" href="./style.css" />
   <script src="https://cdn.jsdelivr.net/npm/p5@1.11.3/lib/p5.min.js"></script>
 </head>
-<body>
+<body data-view="signals">
   <main id="signal-guessing">
+    <nav class="app-tabs" aria-label="Application views">
+      <button class="app-tab is-active" type="button" data-view-button="signals" aria-selected="true">Signals</button>
+      <button class="app-tab" type="button" data-view-button="record" aria-selected="false">Record</button>
+    </nav>
     <nav class="panel-toggles" aria-label="Visible signal cards">
       <label class="panel-toggle" aria-label="Toggle signal card 01">
         <input type="checkbox" data-card-id="contact" checked />
@@ -36,10 +40,60 @@
         <span>06</span>
       </label>
     </nav>
+
+    <section id="recording-view" class="recording-view" hidden>
+      <div class="camera-panel">
+        <div class="camera-frame">
+          <video id="camera-preview" muted playsinline></video>
+          <div id="camera-placeholder" class="camera-placeholder">CAMERA OFF</div>
+        </div>
+        <canvas id="camera-capture" class="capture-canvas" width="320" height="240"></canvas>
+        <dl class="camera-specs">
+          <div><dt>FRAME</dt><dd>320 x 240</dd></div>
+          <div><dt>RATE</dt><dd>12 FPS</dd></div>
+          <div><dt>VIDEO</dt><dd>180 kbps</dd></div>
+          <div><dt>AUDIO</dt><dd>OFF</dd></div>
+        </dl>
+      </div>
+
+      <div class="record-controls">
+        <div class="record-actions">
+          <button id="choose-folder" class="tool-button" type="button">Choose Folder</button>
+          <button id="enable-camera" class="tool-button" type="button">Enable Camera</button>
+          <button id="start-recording" class="tool-button record-button" type="button" disabled>
+            <span class="record-dot" aria-hidden="true"></span>Record
+          </button>
+          <button id="stop-recording" class="tool-button" type="button" disabled>Stop</button>
+        </div>
+
+        <dl class="record-status-grid">
+          <div><dt>SESSION</dt><dd id="record-state">IDLE</dd></div>
+          <div><dt>ELAPSED</dt><dd id="record-elapsed">00:00</dd></div>
+          <div><dt>PACKETS</dt><dd id="record-packets">0</dd></div>
+          <div><dt>RAW</dt><dd id="record-raw">0</dd></div>
+        </dl>
+
+        <div class="record-destination">
+          <span>DESTINATION</span>
+          <output id="record-folder">NOT SELECTED</output>
+        </div>
+        <p id="record-message" class="record-message" role="status" aria-live="polite">Connect TGAM, choose a folder, and enable the camera.</p>
+      </div>
+
+      <div class="record-files">
+        <div class="record-file"><span>PACKETS</span><output id="packets-file">--</output></div>
+        <div class="record-file"><span>RAW EEG</span><output id="raw-file">--</output></div>
+        <div class="record-file"><span>CAMERA</span><output id="video-file">--</output></div>
+        <div class="record-file"><span>MANIFEST</span><output id="manifest-file">--</output></div>
+      </div>
+    </section>
   </main>
   <script src="./tgam-parser.js"></script>
   <script src="./derived-signals.js"></script>
   <script src="./serial-source.js"></script>
+  <script src="./tabs.js"></script>
+  <script src="./recorder-core.js"></script>
+  <script src="./recorder.js"></script>
   <script src="./sketch.js"></script>
 </body>
 </html>

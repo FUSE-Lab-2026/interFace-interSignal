@@ -36,7 +36,7 @@
     "midGamma",
   ];
 
-  const createParser = (onPacket, onDiagnostic = () => {}) => {
+  const createParser = (onPacket, onDiagnostic = () => {}, onFrame = () => {}) => {
     let state = STATE.SYNC_1;
     let payloadLength = 0;
     let payload = [];
@@ -204,6 +204,13 @@
           if (byte === calculated) {
             stats.validPackets += 1;
             const packet = parsePayload(payload);
+            onFrame({
+              payloadLength,
+              checksum: byte,
+              payloadBytes: [...payload],
+              frameBytes: [SYNC, SYNC, payloadLength, ...payload, byte],
+              packet: { ...packet },
+            });
             if (Object.keys(packet).length > 0) onPacket(packet);
           } else {
             stats.checksumFailures += 1;

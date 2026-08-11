@@ -5,6 +5,7 @@ const path = require("node:path");
 const publicPath = path.join(__dirname, "..", "public");
 const html = fs.readFileSync(path.join(publicPath, "index.html"), "utf8");
 const sketch = fs.readFileSync(path.join(publicPath, "sketch.js"), "utf8");
+const recorder = fs.readFileSync(path.join(publicPath, "recorder.js"), "utf8");
 
 const cardIds = Array.from(html.matchAll(/data-card-id="([^"]+)"/g), (match) => match[1]);
 assert.deepEqual(cardIds, ["contact", "movement", "eyes", "raw", "bands", "esense"]);
@@ -17,5 +18,20 @@ for (const drawFunction of ["drawContact", "drawMovement", "drawEyes", "drawRaw"
 assert(sketch.includes("[data-card-id]:checked"));
 assert(sketch.includes("resizeForLayout()"));
 assert(sketch.includes("TGAM Q ${Math.round(signalQuality)}/200"));
+assert.equal((html.match(/data-view-button=/g) || []).length, 2);
+for (const id of [
+  "choose-folder",
+  "enable-camera",
+  "start-recording",
+  "stop-recording",
+  "camera-preview",
+  "camera-capture",
+]) {
+  assert(html.includes(`id="${id}"`), `${id} is missing`);
+}
+assert(recorder.includes("TGAMSerialSource.onFrame(recordFrame)"));
+assert(recorder.includes("captureStream(VIDEO.framesPerSecond)"));
+assert(recorder.includes("videoBitsPerSecond: VIDEO.bitsPerSecond"));
+assert(recorder.includes("audio: false"));
 
 console.log("Standalone page structure tests passed");
