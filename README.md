@@ -49,6 +49,10 @@ values rather than new inferred scores.
 Exact formulas, FFT windows, frequency ranges, and limitations are documented in
 [PROCESSING.md](PROCESSING.md).
 
+현재 데이터 규격, MVP 범위, 구현 및 검증 상태는 한국어
+[project.md](project.md)를 기준으로 관리합니다. 큰 개정 전의 프로젝트 문서는
+`backup/`에 보관합니다.
+
 ## Architecture
 
 ```text
