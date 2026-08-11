@@ -26,6 +26,8 @@ mappings change.
 - The two frequency-derived scores are hidden whenever `q` is nonzero.
 - Visual: a vertical fill whose height is `Contact / 100`; opacity also increases
   with the score.
+- Header: the native value is also shown without conversion as `TGAM Q q/200`.
+  It remains `--` until a quality packet arrives in the current live connection.
 
 ## Movement
 

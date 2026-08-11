@@ -25,6 +25,7 @@ const signalGuessingSketch = (p) => {
   let latestBands = null;
   let attention = null;
   let meditation = null;
+  let signalQuality = null;
 
   const clamp = (value, minimum = 0, maximum = 100) => {
     return Math.max(minimum, Math.min(maximum, value));
@@ -56,6 +57,7 @@ const signalGuessingSketch = (p) => {
     latestBands = null;
     attention = null;
     meditation = null;
+    signalQuality = null;
   };
 
   p.setup = () => {
@@ -81,7 +83,10 @@ const signalGuessingSketch = (p) => {
     }
 
     TGAMSerialSource.onPacket((packet) => {
-      if (packet.signal !== undefined) DerivedSignals.setSignalQuality(packet.signal);
+      if (packet.signal !== undefined) {
+        DerivedSignals.setSignalQuality(packet.signal);
+        signalQuality = packet.signal;
+      }
       if (packet.raw !== undefined) {
         DerivedSignals.pushRaw(packet.raw);
         rawHistory.push(packet.raw);
@@ -149,6 +154,13 @@ const signalGuessingSketch = (p) => {
     p.fill(connected ? 210 : 135);
     p.textAlign(p.RIGHT, p.CENTER);
     p.text(sourceLabel, p.width - PAGE_PADDING - BUTTON_WIDTH - 12, 28);
+
+    const qualityLabel = connected && Number.isFinite(signalQuality)
+      ? `TGAM Q ${Math.round(signalQuality)}/200`
+      : "TGAM Q --/200";
+    p.fill(135);
+    p.textSize(10);
+    p.text(qualityLabel, p.width - PAGE_PADDING, 73);
   };
 
   const getPanelBounds = (cardCount) => {

@@ -25,7 +25,8 @@ the port at a time.
 
 The header should show approximately `512 raw/s` while raw packets are arriving.
 `bad 0` is the checksum-failure counter; a rising value indicates corrupt or
-misaligned serial data.
+misaligned serial data. `TGAM Q n/200` shows the native contact-quality packet:
+`0` is best and `200` means no contact.
 
 ## Cards and visibility
 

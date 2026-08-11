@@ -16,5 +16,6 @@ for (const drawFunction of ["drawContact", "drawMovement", "drawEyes", "drawRaw"
 }
 assert(sketch.includes("[data-card-id]:checked"));
 assert(sketch.includes("resizeForLayout()"));
+assert(sketch.includes("TGAM Q ${Math.round(signalQuality)}/200"));
 
 console.log("Standalone page structure tests passed");

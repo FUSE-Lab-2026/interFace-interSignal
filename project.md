@@ -190,6 +190,8 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - 619 px 이하: 1열 및 세로 스크롤
 - 연결 전 또는 사용할 수 없는 값은 `--`와 빈 visual로 표시
 - serial 연결 버튼과 상태, raw sample rate, checksum failure는 항상 header에 표시
+- header 우측 아래에 native Poor Signal을 `TGAM Q q/200`으로 표시
+- live 연결에서 첫 Poor Signal packet을 받기 전에는 `TGAM Q --/200` 표시
 
 ## 파일별 책임
 
@@ -218,6 +220,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] 카드 06 native Attention/Meditation 구현
 - [x] 6개 카드 개별 표시/숨김 및 반응형 grid 구현
 - [x] 카드 제목/설명 숨김
+- [x] native TGAM Poor Signal 0-200 header 표시
 - [x] parser, mock serial, page structure 자동 테스트 통과
 - [x] 1,440 x 900 desktop 및 500 px narrow browser render 확인
 
