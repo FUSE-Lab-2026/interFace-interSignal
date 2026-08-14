@@ -46,8 +46,12 @@ const signalGuessingSketch = (p) => {
     return Math.max(viewportHeight, HEADER_HEIGHT + PAGE_PADDING + minimumContentHeight);
   };
 
+  const isRecordView = () => document.body.dataset.view === "record";
+
+  const getLayoutCardCount = () => isRecordView() ? CARD_IDS.length : visibleCardIds.size;
+
   const resizeForLayout = () => {
-    const height = getCanvasHeight(p.windowWidth, p.windowHeight, visibleCardIds.size);
+    const height = getCanvasHeight(p.windowWidth, p.windowHeight, getLayoutCardCount());
     p.resizeCanvas(p.windowWidth, height);
     positionConnectButton();
   };
@@ -101,7 +105,7 @@ const signalGuessingSketch = (p) => {
     });
 
     document.addEventListener("appviewchange", (event) => {
-      if (event.detail.view === "signals") requestAnimationFrame(resizeForLayout);
+      requestAnimationFrame(resizeForLayout);
     });
   };
 
@@ -376,7 +380,7 @@ const signalGuessingSketch = (p) => {
       { id: "raw", number: "04", draw: (visual, panel) => drawRaw(visual, panel, connected) },
       { id: "bands", number: "05", draw: (visual) => drawBands(visual, connected) },
       { id: "esense", number: "06", draw: (visual) => drawESense(visual, connected) },
-    ].filter((card) => visibleCardIds.has(card.id));
+    ];
   };
 
   p.draw = () => {
@@ -384,9 +388,27 @@ const signalGuessingSketch = (p) => {
     updateConnectButton();
     drawHeader();
 
-    const cards = getCards();
-    const panelBounds = getPanelBounds(cards.length);
-    cards.forEach((card, index) => drawPanel(card, panelBounds[index]));
+    const allCards = getCards();
+    if (isRecordView()) {
+      const cardsById = new Map(allCards.map((card) => [card.id, card]));
+      const recordSlots = [
+        cardsById.get("contact"),
+        null,
+        null,
+        cardsById.get("raw"),
+        cardsById.get("bands"),
+        cardsById.get("esense"),
+      ];
+      const panelBounds = getPanelBounds(recordSlots.length);
+      recordSlots.forEach((card, index) => {
+        if (card) drawPanel(card, panelBounds[index]);
+      });
+      return;
+    }
+
+    const visibleCards = allCards.filter((card) => visibleCardIds.has(card.id));
+    const panelBounds = getPanelBounds(visibleCards.length);
+    visibleCards.forEach((card, index) => drawPanel(card, panelBounds[index]));
   };
 
   p.windowResized = resizeForLayout;

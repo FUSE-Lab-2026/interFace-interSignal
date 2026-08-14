@@ -57,20 +57,27 @@ Chromium.
 2. Open `Record` or visit `http://localhost:3000/#record`.
 3. Press **Choose Folder** and grant write access.
 4. Press **Enable Camera** and grant camera access.
-5. Press **Record**, then **Stop** when finished.
+5. Press **30 s** or **1 min**. The session stops and finalizes automatically;
+   **Stop** remains available for an early finish.
+
+The Record view keeps Signal Contact, Raw EEG, Band Power, and
+Attention/Meditation in their original grid positions. Its two compact recorder
+cards replace Movement and Eyes Closed only.
 
 Each session writes directly to the selected folder:
 
 - `*-tgam-packets.ndjson`: checksum-valid physical TGAM frames, frame hex,
   timestamps, decoded fields, and transport-stat events
 - `*-raw-eeg.txt`: unfiltered raw values with sample index and two timestamps
-- `*-camera-240p.webm`: silent 320 x 240, 12 FPS video at a requested 180 kbps
+- `*-camera-100p.webm`: silent 134 x 100, 8 FPS video at a requested 50 kbps
 - `*-session.json`: recording settings, filenames, counts, duration, and final
   parser statistics
 
-The camera may supply a larger source image, but the recorded stream is always
-downsampled through a 320 x 240 canvas. The browser may choose a slightly
-different actual video bitrate than requested.
+The app requests a broadly supported 640 x 480 camera input and waits for a real
+preview frame. The recorded stream is independently downsampled through a
+134 x 100 canvas. Permission denial, insecure context, missing camera, and a
+camera busy in another app are shown as distinct errors. The browser may choose
+a slightly different actual video bitrate than requested.
 
 Exact formulas, FFT windows, frequency ranges, and limitations are documented in
 [PROCESSING.md](PROCESSING.md).
@@ -89,7 +96,7 @@ TGAM serial bytes
      -> browser FFT-derived signals -> p5.js visualization
      -> frame NDJSON + raw EEG text recorder
 
-Web camera -> 320 x 240 canvas -> MediaRecorder -> WebM file
+Web camera -> preview -> 134 x 100 canvas -> MediaRecorder -> WebM file
 ```
 
 Node only serves static files on localhost. It does not access the serial port,

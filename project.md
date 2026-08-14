@@ -2,8 +2,8 @@
 
 ## 문서 정보
 
-- 마지막 업데이트: 2026-08-11
-- 현재 단계: 6-card 시각화 및 동시 녹화 MVP 구현 완료, 실제 TGAM/카메라 통합 검증 전
+- 마지막 업데이트: 2026-08-14
+- 현재 단계: 6-slot 실시간 시각화와 30초/1분 동시 녹화 MVP 구현 완료, 실제 TGAM/카메라 통합 검증 전
 - 저장소: `FUSE-Lab-2026/interFace-interSignal`
 - 기준 브랜치: `main`
 - 문서 역할: 데이터 규격, MVP 범위, 구현 상태, 검증 상태를 관리하는 단일 기준 문서
@@ -40,7 +40,8 @@ TGAM EEG를 처음 접하는 워크숍 참여자가 용어를 먼저 배우기�
 - 신호 계산과 시각 매핑 기록
 - 같은 페이지 안의 `Signals`, `Record` tab
 - 사용자 지정 폴더에 TGAM frame NDJSON과 raw EEG TXT streaming 저장
-- 320 x 240, 12 FPS, audio 없는 저용량 webcam WebM 저장
+- 134 x 100, 8 FPS, audio 없는 저용량 webcam WebM 저장
+- 30초 또는 1분 고정 길이 녹화와 자동 finalize
 - session 설정과 parser 통계를 담은 JSON manifest 저장
 
 ### MVP에서 제외
@@ -63,7 +64,7 @@ TGAM serial bytes
      -> browser-derived signals -> p5.js cards
      -> frame NDJSON + raw EEG TXT writer
 
-Web camera -> 320 x 240 canvas -> MediaRecorder -> WebM writer
+Web camera -> preview -> 134 x 100 canvas -> MediaRecorder -> WebM writer
 ```
 
 Node는 `public/`을 `localhost`에 제공하는 정적 서버 역할만 한다. Node가 시리얼
@@ -124,7 +125,7 @@ ASIC band 순서는 `delta`, `theta`, `lowAlpha`, `highAlpha`, `lowBeta`,
 |---|---|
 | `*-tgam-packets.ndjson` | checksum-valid physical frame, timestamp, frame hex, decoded fields, transport stats |
 | `*-raw-eeg.txt` | unfiltered raw EEG, tab-separated sample/timestamp/value rows |
-| `*-camera-240p.webm` | 320 x 240, 12 FPS, requested 180 kbps, audio 없음 |
+| `*-camera-100p.webm` | 134 x 100, 8 FPS, requested 50 kbps, audio 없음 |
 | `*-session.json` | 설정, 파일명, 시간, count, video bytes, parser stats, stop reason |
 
 Base name은 `YYYY-MM-DD_HHmmss_SSS` 형식이다. 파일은 `Choose Folder`에서
@@ -150,15 +151,26 @@ Base name은 `YYYY-MM-DD_HHmmss_SSS` 형식이다. 파일은 `Choose Folder`에�
 
 | 항목 | 규격 |
 |---|---|
-| 출력 frame | 정확히 320 x 240 canvas |
-| frame rate | 12 FPS |
-| 요청 bitrate | 180,000 bits/second |
+| camera 입력 요청 | ideal 640 x 480, ideal 15 FPS, max 30 FPS |
+| 출력 frame | 정확히 134 x 100 canvas |
+| frame rate | 8 FPS |
+| 요청 bitrate | 50,000 bits/second |
 | audio | capture 및 output 모두 없음 |
 | codec 우선순위 | WebM VP8, WebM VP9, WebM fallback |
 
-카메라 hardware가 더 큰 영상을 제공해도 recording canvas에서 320 x 240으로
+카메라 hardware 입력 해상도와 무관하게 recording canvas에서 134 x 100으로
 downsample한다. 실제 encoder bitrate는 browser 판단으로 요청값과 다를 수 있다.
 Video chunk는 메모리에 전체 누적하지 않고 writable file에 순서대로 기록한다.
+preview는 최대 8초 동안 실제 frame을 기다린다. permission 거부, insecure context,
+camera 없음, 다른 앱의 camera 점유를 구분해 Record card에 오류를 표시한다.
+
+### 녹화 시간
+
+- 시작 옵션은 30초와 1분 두 가지다.
+- 선택한 시간은 NDJSON `recording_start.planned_duration_ms`와 manifest
+  `plannedDurationMs`에 기록한다.
+- 선택 시간이 끝나면 `duration_complete` 사유로 자동 finalize한다.
+- `Stop`으로 선택 시간 전에 수동 종료할 수 있다.
 
 ## 카드 규격
 
@@ -250,7 +262,11 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - 상단 `Signals`와 `Record` tab으로 view 전환
 - `#signals`, `#record` hash URL로 각 view 직접 접근
 - serial connect button은 두 view에서 같은 source를 제어
-- Record view는 folder, camera, Record, Stop과 elapsed/frame/raw count 표시
+- Record view는 항상 6-slot grid를 유지한다.
+- slot 01, 04, 05, 06에는 Signal Contact, Raw EEG, Band Power,
+  Attention/Meditation을 계속 표시한다.
+- 기존 Movement와 Eyes Closed 자리인 slot 02, 03만 camera와 compact recorder로 교체한다.
+- recorder card는 folder, 30초/1분 시작, Stop, 남은 시간, frame/raw count를 표시한다.
 
 ## 파일별 책임
 
@@ -286,11 +302,14 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] checksum-valid physical TGAM frame callback 및 exact frame hex 구현
 - [x] Signals/Record tab과 hash URL 구현
 - [x] TGAM frame NDJSON 및 raw EEG TXT streaming writer 구현
-- [x] 320 x 240, 12 FPS, 180 kbps 요청, audio 없는 WebM recorder 구현
+- [x] 134 x 100, 8 FPS, 50 kbps 요청, audio 없는 WebM recorder 구현
+- [x] 일반적인 640 x 480 camera 입력 요청, preview frame 대기, permission 오류 표시
+- [x] 30초/1분 시작 옵션, 남은 시간 표시, 자동 stop/finalize 구현
+- [x] Record view에서 slot 02/03만 camera/recorder로 교체하고 나머지 live card 유지
 - [x] session JSON manifest와 자동 stop/finalize 구현
 - [x] parser, mock serial, recorder lifecycle, page structure 자동 테스트 통과
 - [x] 1,440 x 900 desktop 및 500 px narrow browser render 확인
-- [x] 1,440 x 900 Record tab browser render 확인
+- [x] 1,440 x 900 및 500 x 900 Record tab browser render 확인
 
 ### 실제 장비로 확인 필요
 
@@ -303,8 +322,8 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [ ] Bluetooth loss, 수동 disconnect/reconnect, sleep/wake 후 복구 확인
 - [ ] 실제 신호에서 raw EEG ±2,048 표시 범위가 워크숍에 적절한지 확인
 - [ ] Chrome에서 recording folder permission과 지속적인 file write 확인
-- [ ] 실제 webcam permission, 320 x 240 WebM 재생, file size 확인
-- [ ] 실제 TGAM과 webcam 동시 5분 recording의 timestamp/count 확인
+- [ ] 실제 webcam permission, 134 x 100 WebM 재생, file size 확인
+- [ ] 실제 TGAM과 webcam 동시 30초/1분 recording의 자동 종료와 timestamp/count 확인
 - [ ] serial 또는 camera 중단 시 세 파일과 manifest가 정상 finalize되는지 확인
 
 ## MVP 완료 기준
@@ -318,8 +337,8 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 5. 카드 05와 06이 실제 TGAM packet 주기에 따라 갱신된다.
 6. 모든 visibility checkbox가 대응 카드만 표시하거나 숨긴다.
 7. disconnect 후 stale live 값이 현재 값처럼 표시되지 않는다.
-8. Record tab에서 네 출력 파일을 만들고 Stop 후 다시 열 수 있다.
-9. 5분 동시 녹화에서 browser memory가 지속적으로 증가하지 않는다.
+8. Record tab에서 30초/1분 선택 후 네 출력 파일을 만들고 자동 종료 후 다시 열 수 있다.
+9. 1분 동시 녹화에서 browser memory가 지속적으로 증가하지 않는다.
 10. `npm test`가 통과한다.
 
 ## 알려진 제약 및 위험

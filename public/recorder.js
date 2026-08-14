@@ -1,6 +1,7 @@
 const TGAMSessionRecorder = (() => {
-  const { SERIAL, VIDEO } = TGAMRecorderCore;
+  const { CAMERA_REQUEST, SERIAL, VIDEO } = TGAMRecorderCore;
   const FLUSH_THRESHOLD = 65536;
+  const CAMERA_START_TIMEOUT_MS = 8000;
 
   const elements = {
     cameraPreview: document.querySelector("#camera-preview"),
@@ -8,7 +9,8 @@ const TGAMSessionRecorder = (() => {
     captureCanvas: document.querySelector("#camera-capture"),
     chooseFolder: document.querySelector("#choose-folder"),
     enableCamera: document.querySelector("#enable-camera"),
-    start: document.querySelector("#start-recording"),
+    start30: document.querySelector("#start-recording-30"),
+    start60: document.querySelector("#start-recording-60"),
     stop: document.querySelector("#stop-recording"),
     state: document.querySelector("#record-state"),
     elapsed: document.querySelector("#record-elapsed"),
@@ -24,6 +26,7 @@ const TGAMSessionRecorder = (() => {
 
   let directoryHandle = null;
   let cameraStream = null;
+  let cameraStarting = false;
   let captureStream = null;
   let cameraDrawTimer = null;
   let mediaRecorder = null;
@@ -31,6 +34,7 @@ const TGAMSessionRecorder = (() => {
   let frameUnsubscribe = null;
   let flushTimer = null;
   let statsTimer = null;
+  let autoStopTimer = null;
   let state = "idle";
   let session = null;
   let queues = null;
@@ -74,6 +78,23 @@ const TGAMSessionRecorder = (() => {
     elements.message.classList.toggle("is-error", isError);
   };
 
+  const setCameraStatus = (message, hidden = false) => {
+    elements.cameraPlaceholder.textContent = message;
+    elements.cameraPlaceholder.hidden = hidden;
+  };
+
+  const describeCameraError = (error) => {
+    const messages = {
+      NotAllowedError: "Camera permission was denied. Allow this site in Chrome and enable Chrome in macOS Privacy & Security > Camera, then retry.",
+      NotFoundError: "No webcam was found.",
+      NotReadableError: "The webcam is unavailable. Close other camera apps and check macOS Camera privacy settings.",
+      OverconstrainedError: "The webcam could not provide a compatible video mode.",
+      SecurityError: "Camera access is blocked by the browser security policy.",
+      AbortError: "The webcam did not finish starting. Retry Camera.",
+    };
+    return messages[error?.name] || error?.message || String(error);
+  };
+
   const setState = (nextState) => {
     state = nextState;
     elements.state.textContent = nextState.toUpperCase();
@@ -88,14 +109,18 @@ const TGAMSessionRecorder = (() => {
     const busy = state === "preparing" || state === "recording" || state === "stopping";
     const ready = directoryHandle && cameraReady() && TGAMSerialSource.isConnected();
     elements.chooseFolder.disabled = busy || !("showDirectoryPicker" in window);
-    elements.enableCamera.disabled = busy || !navigator.mediaDevices?.getUserMedia;
-    elements.enableCamera.textContent = cameraReady() ? "Disable Camera" : "Enable Camera";
-    elements.start.disabled = busy || !ready || typeof MediaRecorder === "undefined";
+    elements.enableCamera.disabled = busy || cameraStarting || !navigator.mediaDevices?.getUserMedia;
+    elements.enableCamera.textContent = cameraStarting
+      ? "Starting Camera..."
+      : cameraReady() ? "Disable Camera" : "Enable Camera";
+    const startDisabled = busy || !ready || typeof MediaRecorder === "undefined";
+    elements.start30.disabled = startDisabled;
+    elements.start60.disabled = startDisabled;
     elements.stop.disabled = state !== "recording";
   };
 
-  const formatElapsed = (milliseconds) => {
-    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const formatRemaining = (milliseconds) => {
+    const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
@@ -104,7 +129,8 @@ const TGAMSessionRecorder = (() => {
   const updateStatus = () => {
     updateControls();
     if (state === "recording" && session) {
-      elements.elapsed.textContent = formatElapsed(performance.now() - session.startedPerformanceMs);
+      const elapsedMs = performance.now() - session.startedPerformanceMs;
+      elements.elapsed.textContent = formatRemaining(session.plannedDurationMs - elapsedMs);
       if (!TGAMSerialSource.isConnected() && !stopPromise) {
         setMessage("TGAM disconnected. Finalizing the current files.", true);
         stopRecording("serial_disconnected");
@@ -123,6 +149,8 @@ const TGAMSessionRecorder = (() => {
         mode: "readwrite",
       });
       elements.folder.textContent = directoryHandle.name;
+      elements.chooseFolder.textContent = "Folder Selected";
+      elements.chooseFolder.title = directoryHandle.name;
       setMessage("Recording folder selected.");
     } catch (error) {
       if (error.name !== "AbortError") setMessage(error.message || String(error), true);
@@ -134,11 +162,36 @@ const TGAMSessionRecorder = (() => {
     if (cameraStream) cameraStream.getTracks().forEach((track) => track.stop());
     cameraStream = null;
     elements.cameraPreview.srcObject = null;
-    elements.cameraPlaceholder.hidden = false;
+    setCameraStatus("CAMERA OFF");
     updateControls();
   };
 
+  const waitForCameraFrame = () => {
+    if (elements.cameraPreview.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (callback, value) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeout);
+        callback(value);
+      };
+      const timeout = window.setTimeout(() => {
+        const error = new Error("The webcam connected but did not provide a video frame.");
+        error.name = "AbortError";
+        finish(reject, error);
+      }, CAMERA_START_TIMEOUT_MS);
+      elements.cameraPreview.addEventListener("loadeddata", () => finish(resolve), { once: true });
+      elements.cameraPreview.addEventListener("error", () => {
+        finish(reject, new Error("The webcam preview could not be displayed."));
+      }, { once: true });
+    });
+  };
+
   const enableCamera = async () => {
+    if (cameraStarting) return;
     if (cameraReady()) {
       stopCamera();
       setMessage("Camera disabled.");
@@ -146,25 +199,37 @@ const TGAMSessionRecorder = (() => {
     }
     if (!navigator.mediaDevices?.getUserMedia) {
       setMessage("Camera capture is unavailable in this browser.", true);
+      setCameraStatus("CAMERA UNAVAILABLE");
+      return;
+    }
+    if (window.isSecureContext === false) {
+      setMessage("Camera access requires localhost or HTTPS.", true);
+      setCameraStatus("HTTPS REQUIRED");
       return;
     }
 
     try {
+      cameraStarting = true;
+      updateControls();
+      setCameraStatus("REQUESTING CAMERA");
+      setMessage("Waiting for browser and macOS camera permission...");
       cameraStream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
-          width: { ideal: VIDEO.width },
-          height: { ideal: VIDEO.height },
-          frameRate: { ideal: VIDEO.framesPerSecond, max: 15 },
-          aspectRatio: { ideal: VIDEO.width / VIDEO.height },
-          facingMode: "user",
+          width: { ideal: CAMERA_REQUEST.width },
+          height: { ideal: CAMERA_REQUEST.height },
+          frameRate: {
+            ideal: CAMERA_REQUEST.framesPerSecond,
+            max: CAMERA_REQUEST.maximumFramesPerSecond,
+          },
+          facingMode: { ideal: "user" },
         },
       });
       const [track] = cameraStream.getVideoTracks();
       track.addEventListener("ended", () => {
         cameraStream = null;
         elements.cameraPreview.srcObject = null;
-        elements.cameraPlaceholder.hidden = false;
+        setCameraStatus("CAMERA STOPPED");
         if (state === "recording") {
           setMessage("Camera stopped. Finalizing the current files.", true);
           stopRecording("camera_ended");
@@ -173,11 +238,17 @@ const TGAMSessionRecorder = (() => {
       }, { once: true });
       elements.cameraPreview.srcObject = cameraStream;
       await elements.cameraPreview.play();
-      elements.cameraPlaceholder.hidden = true;
-      setMessage("Camera ready at low-resolution recording settings.");
+      await waitForCameraFrame();
+      setCameraStatus("CAMERA READY", true);
+      setMessage("Camera ready. Video will be downsampled to 134 x 100.");
     } catch (error) {
       stopCamera();
-      setMessage(error.message || String(error), true);
+      const message = describeCameraError(error);
+      const status = error?.name === "NotAllowedError" ? "CAMERA BLOCKED" : "CAMERA ERROR";
+      setCameraStatus(status);
+      setMessage(message, true);
+    } finally {
+      cameraStarting = false;
     }
     updateControls();
   };
@@ -293,7 +364,7 @@ const TGAMSessionRecorder = (() => {
     mediaStopPromise = null;
   };
 
-  const startRecording = async () => {
+  const startRecording = async (plannedDurationMs) => {
     if (state === "recording" || state === "stopping") return;
     if (!TGAMSerialSource.isConnected()) {
       setMessage("Connect TGAM before recording.", true);
@@ -311,6 +382,10 @@ const TGAMSessionRecorder = (() => {
       setMessage("Video recording is unavailable in this browser.", true);
       return;
     }
+    if (plannedDurationMs !== 30000 && plannedDurationMs !== 60000) {
+      setMessage("Choose a 30 second or 1 minute recording.", true);
+      return;
+    }
 
     setState("preparing");
     setMessage("Preparing synchronized output files...");
@@ -319,7 +394,7 @@ const TGAMSessionRecorder = (() => {
     writeFailure = null;
     elements.packets.textContent = "0";
     elements.raw.textContent = "0";
-    elements.elapsed.textContent = "00:00";
+    elements.elapsed.textContent = formatRemaining(plannedDurationMs);
 
     const startedAt = new Date();
     const baseName = TGAMRecorderCore.createBaseName(startedAt);
@@ -335,6 +410,7 @@ const TGAMSessionRecorder = (() => {
       videoBytes: 0,
       videoMimeType: "",
       actualVideoBitsPerSecond: 0,
+      plannedDurationMs,
       initialStats: null,
       cameraInput: cameraInputSettings(),
     };
@@ -367,12 +443,18 @@ const TGAMSessionRecorder = (() => {
         files,
         serial: SERIAL,
         video: VIDEO,
+        planned_duration_ms: plannedDurationMs,
       });
       flushTextBuffers();
       frameUnsubscribe = TGAMSerialSource.onFrame(recordFrame);
       mediaRecorder.start(1000);
       setState("recording");
-      setMessage("Recording TGAM frames, raw EEG, and 240p camera video.");
+      setMessage(`Recording TGAM frames, raw EEG, and 100p video for ${plannedDurationMs / 1000} seconds.`);
+      const stopDelayMs = Math.max(
+        0,
+        plannedDurationMs - (performance.now() - session.startedPerformanceMs)
+      );
+      autoStopTimer = window.setTimeout(() => stopRecording("duration_complete"), stopDelayMs);
       flushTimer = window.setInterval(flushTextBuffers, 1000);
       statsTimer = window.setInterval(() => {
         if (state !== "recording" || !session) return;
@@ -387,6 +469,8 @@ const TGAMSessionRecorder = (() => {
       if (frameUnsubscribe) frameUnsubscribe();
       frameUnsubscribe = null;
       if (mediaRecorder?.state === "recording") mediaRecorder.stop();
+      if (autoStopTimer) window.clearTimeout(autoStopTimer);
+      autoStopTimer = null;
       cleanupCaptureStream();
       await abortQueues();
       session = null;
@@ -415,6 +499,8 @@ const TGAMSessionRecorder = (() => {
 
   const performStop = async (reason) => {
     setState("stopping");
+    if (autoStopTimer) window.clearTimeout(autoStopTimer);
+    autoStopTimer = null;
     if (frameUnsubscribe) frameUnsubscribe();
     frameUnsubscribe = null;
     if (flushTimer) window.clearInterval(flushTimer);
@@ -462,6 +548,7 @@ const TGAMSessionRecorder = (() => {
       startedUnixMs: session.startedUnixMs,
       stoppedUnixMs,
       durationMs,
+      plannedDurationMs: session.plannedDurationMs,
       stopReason: reason,
       serialSessionId: session.serialSessionId,
       serial: SERIAL,
@@ -490,7 +577,7 @@ const TGAMSessionRecorder = (() => {
       },
     };
     await writeManifest(manifest);
-    elements.elapsed.textContent = formatElapsed(durationMs);
+    elements.elapsed.textContent = formatRemaining(session.plannedDurationMs - durationMs);
     setState("saved");
     setMessage(`Saved ${session.frameCount} TGAM frames and ${session.rawSampleCount} raw samples.`);
   };
@@ -515,7 +602,8 @@ const TGAMSessionRecorder = (() => {
 
   elements.chooseFolder.addEventListener("click", chooseFolder);
   elements.enableCamera.addEventListener("click", enableCamera);
-  elements.start.addEventListener("click", startRecording);
+  elements.start30.addEventListener("click", () => startRecording(30000));
+  elements.start60.addEventListener("click", () => startRecording(60000));
   elements.stop.addEventListener("click", () => stopRecording("user"));
 
   window.addEventListener("beforeunload", (event) => {
@@ -525,6 +613,15 @@ const TGAMSessionRecorder = (() => {
   });
 
   window.setInterval(updateStatus, 250);
+  if (!navigator.mediaDevices?.getUserMedia) {
+    setCameraStatus(window.isSecureContext === false ? "HTTPS REQUIRED" : "CAMERA UNAVAILABLE");
+    setMessage(
+      window.isSecureContext === false
+        ? "Camera access requires localhost or HTTPS."
+        : "Camera capture is unavailable in this browser.",
+      true
+    );
+  }
   updateControls();
 
   return {

@@ -34,7 +34,8 @@ const ids = [
   "camera-capture",
   "choose-folder",
   "enable-camera",
-  "start-recording",
+  "start-recording-30",
+  "start-recording-60",
   "stop-recording",
   "record-state",
   "record-elapsed",
@@ -139,11 +140,19 @@ const source = {
 };
 
 let clock = 1000;
+const scheduledTimeouts = [];
+let requestedCameraConstraints = null;
 const windowObject = {
   showDirectoryPicker: async () => directoryHandle,
   setInterval: () => 1,
   clearInterval() {},
+  setTimeout(callback, delay) {
+    scheduledTimeouts.push({ callback, delay });
+    return scheduledTimeouts.length;
+  },
+  clearTimeout() {},
   addEventListener() {},
+  isSecureContext: true,
 };
 const context = vm.createContext({
   Blob,
@@ -152,7 +161,14 @@ const context = vm.createContext({
   document: { querySelector: (selector) => elements[selector] },
   HTMLMediaElement: { HAVE_CURRENT_DATA: 2 },
   MediaRecorder: FakeMediaRecorder,
-  navigator: { mediaDevices: { getUserMedia: async () => cameraStream } },
+  navigator: {
+    mediaDevices: {
+      getUserMedia: async (constraints) => {
+        requestedCameraConstraints = constraints;
+        return cameraStream;
+      },
+    },
+  },
   performance: { now: () => clock },
   TGAMRecorderCore: RecorderCore,
   TGAMSerialSource: source,
@@ -176,9 +192,14 @@ const fileText = async (name) => {
 (async () => {
   await elements["#choose-folder"].trigger("click");
   await elements["#enable-camera"].trigger("click");
-  await elements["#start-recording"].trigger("click");
+  assert.equal(requestedCameraConstraints.audio, false);
+  assert.equal(requestedCameraConstraints.video.width.ideal, 640);
+  assert.equal(requestedCameraConstraints.video.height.ideal, 480);
+  await elements["#start-recording-30"].trigger("click");
   assert.equal(recorder.getState(), "recording");
   assert.equal(elements["#record-folder"].textContent, "TGAMRecordings");
+  assert.equal(elements["#choose-folder"].textContent, "Folder Selected");
+  assert(scheduledTimeouts.some((timer) => timer.delay === 30000));
 
   clock = 1250;
   frameListener({
@@ -194,7 +215,7 @@ const fileText = async (name) => {
   const names = Array.from(files.keys());
   const packetsName = names.find((name) => name.endsWith("-tgam-packets.ndjson"));
   const rawName = names.find((name) => name.endsWith("-raw-eeg.txt"));
-  const videoName = names.find((name) => name.endsWith("-camera-240p.webm"));
+  const videoName = names.find((name) => name.endsWith("-camera-100p.webm"));
   const manifestName = names.find((name) => name.endsWith("-session.json"));
   assert(packetsName && rawName && videoName && manifestName);
 
@@ -202,6 +223,7 @@ const fileText = async (name) => {
   assert(packetText.includes('"event":"tgam_frame"'));
   assert(packetText.includes('"frame_hex":"aaaa048002ff9c7c"'));
   assert(packetText.includes('"event":"recording_stop"'));
+  assert(packetText.includes('"planned_duration_ms":30000'));
 
   const rawText = await fileText(rawName);
   assert(rawText.includes("sample_index\telapsed_ms\tunix_ms\traw"));
@@ -213,9 +235,10 @@ const fileText = async (name) => {
   assert.equal(manifest.stopReason, "test");
   assert.equal(manifest.totals.frames, 1);
   assert.equal(manifest.totals.rawSamples, 1);
-  assert.equal(manifest.video.target.width, 320);
-  assert.equal(manifest.video.target.height, 240);
+  assert.equal(manifest.video.target.width, 134);
+  assert.equal(manifest.video.target.height, 100);
   assert.equal(manifest.video.target.audio, false);
+  assert.equal(manifest.plannedDurationMs, 30000);
   assert.equal(manifest.packetFormat.checksumValidFramesOnly, true);
   console.log("Session recorder tests passed");
 })().catch((error) => {

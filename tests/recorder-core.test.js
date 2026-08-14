@@ -6,7 +6,7 @@ assert.equal(baseName, "2026-08-11_090705_042");
 assert.deepEqual(RecorderCore.createFileNames(baseName), {
   packets: "2026-08-11_090705_042-tgam-packets.ndjson",
   raw: "2026-08-11_090705_042-raw-eeg.txt",
-  video: "2026-08-11_090705_042-camera-240p.webm",
+  video: "2026-08-11_090705_042-camera-100p.webm",
   manifest: "2026-08-11_090705_042-session.json",
 });
 
@@ -41,10 +41,12 @@ assert.equal(
   RecorderCore.selectVideoMimeType((type) => type === "video/webm;codecs=vp9"),
   "video/webm;codecs=vp9"
 );
-assert.equal(RecorderCore.VIDEO.width, 320);
-assert.equal(RecorderCore.VIDEO.height, 240);
-assert.equal(RecorderCore.VIDEO.framesPerSecond, 12);
-assert.equal(RecorderCore.VIDEO.bitsPerSecond, 180000);
+assert.equal(RecorderCore.VIDEO.width, 134);
+assert.equal(RecorderCore.VIDEO.height, 100);
+assert.equal(RecorderCore.VIDEO.framesPerSecond, 8);
+assert.equal(RecorderCore.VIDEO.bitsPerSecond, 50000);
 assert.equal(RecorderCore.VIDEO.audio, false);
+assert.equal(RecorderCore.CAMERA_REQUEST.width, 640);
+assert.equal(RecorderCore.CAMERA_REQUEST.height, 480);
 
 console.log("Recorder core tests passed");

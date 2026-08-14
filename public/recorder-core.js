@@ -4,11 +4,18 @@
   else root.TGAMRecorderCore = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const VIDEO = Object.freeze({
-    width: 320,
-    height: 240,
-    framesPerSecond: 12,
-    bitsPerSecond: 180000,
+    width: 134,
+    height: 100,
+    framesPerSecond: 8,
+    bitsPerSecond: 50000,
     audio: false,
+  });
+
+  const CAMERA_REQUEST = Object.freeze({
+    width: 640,
+    height: 480,
+    framesPerSecond: 15,
+    maximumFramesPerSecond: 30,
   });
 
   const SERIAL = Object.freeze({
@@ -37,7 +44,7 @@
   const createFileNames = (baseName, videoExtension = "webm") => ({
     packets: `${baseName}-tgam-packets.ndjson`,
     raw: `${baseName}-raw-eeg.txt`,
-    video: `${baseName}-camera-240p.${videoExtension}`,
+    video: `${baseName}-camera-100p.${videoExtension}`,
     manifest: `${baseName}-session.json`,
   });
 
@@ -77,6 +84,7 @@
   return {
     SERIAL,
     VIDEO,
+    CAMERA_REQUEST,
     createBaseName,
     createFileNames,
     createFrameRecord,

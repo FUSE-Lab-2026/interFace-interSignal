@@ -43,32 +43,37 @@
 
     <section id="recording-view" class="recording-view" hidden>
       <div class="camera-panel">
+        <span class="record-card-number">02</span>
         <div class="camera-frame">
-          <video id="camera-preview" muted playsinline></video>
+          <video id="camera-preview" autoplay muted playsinline></video>
           <div id="camera-placeholder" class="camera-placeholder">CAMERA OFF</div>
         </div>
-        <canvas id="camera-capture" class="capture-canvas" width="320" height="240"></canvas>
+        <canvas id="camera-capture" class="capture-canvas" width="134" height="100"></canvas>
+        <button id="enable-camera" class="tool-button" type="button">Enable Camera</button>
         <dl class="camera-specs">
-          <div><dt>FRAME</dt><dd>320 x 240</dd></div>
-          <div><dt>RATE</dt><dd>12 FPS</dd></div>
-          <div><dt>VIDEO</dt><dd>180 kbps</dd></div>
+          <div><dt>FRAME</dt><dd>134 x 100</dd></div>
+          <div><dt>RATE</dt><dd>8 FPS</dd></div>
+          <div><dt>VIDEO</dt><dd>50 kbps</dd></div>
           <div><dt>AUDIO</dt><dd>OFF</dd></div>
         </dl>
       </div>
 
       <div class="record-controls">
+        <span class="record-card-number">03</span>
         <div class="record-actions">
           <button id="choose-folder" class="tool-button" type="button">Choose Folder</button>
-          <button id="enable-camera" class="tool-button" type="button">Enable Camera</button>
-          <button id="start-recording" class="tool-button record-button" type="button" disabled>
-            <span class="record-dot" aria-hidden="true"></span>Record
+          <button id="start-recording-30" class="tool-button record-button" type="button" disabled>
+            <span class="record-dot" aria-hidden="true"></span>30 s
+          </button>
+          <button id="start-recording-60" class="tool-button record-button" type="button" disabled>
+            <span class="record-dot" aria-hidden="true"></span>1 min
           </button>
           <button id="stop-recording" class="tool-button" type="button" disabled>Stop</button>
         </div>
 
         <dl class="record-status-grid">
           <div><dt>SESSION</dt><dd id="record-state">IDLE</dd></div>
-          <div><dt>ELAPSED</dt><dd id="record-elapsed">00:00</dd></div>
+          <div><dt>LEFT</dt><dd id="record-elapsed">--:--</dd></div>
           <div><dt>PACKETS</dt><dd id="record-packets">0</dd></div>
           <div><dt>RAW</dt><dd id="record-raw">0</dd></div>
         </dl>

@@ -165,16 +165,27 @@ power values in different packets.
 
 ### Camera video
 
-- Filename: `YYYY-MM-DD_HHmmss_SSS-camera-240p.webm`
+- Filename: `YYYY-MM-DD_HHmmss_SSS-camera-100p.webm`
 - Audio: disabled at capture and absent from the recording stream
-- Camera request: ideal 320 x 240, ideal 12 FPS, maximum 15 FPS
-- Output guarantee: each camera frame is redrawn to an exact 320 x 240 canvas
-- Canvas capture: 12 FPS
-- MediaRecorder requested bitrate: 180,000 bits/second
+- Camera input request: ideal 640 x 480, ideal 15 FPS, maximum 30 FPS
+- Output guarantee: each camera frame is redrawn to an exact 134 x 100 canvas
+- Canvas capture: 8 FPS
+- MediaRecorder requested bitrate: 50,000 bits/second
 - Preferred codec order: WebM VP8, WebM VP9, browser WebM fallback
 - MediaRecorder may report an actual bitrate different from the request.
 - Video chunks are written directly to the selected folder as they arrive rather
   than retained as one in-memory Blob.
+- The preview waits up to eight seconds for a decoded frame. Camera permission,
+  secure-context, missing-device, and busy-device failures are reported in the
+  Record card.
+
+### Fixed recording duration
+
+- The only start choices are 30,000 ms and 60,000 ms.
+- `planned_duration_ms` is written to `recording_start` and
+  `plannedDurationMs` is written to the session manifest.
+- A browser timer calls the same finalization path as manual Stop when the chosen
+  duration is reached, using `duration_complete` as the stop reason.
 
 ### Session manifest
 
@@ -186,7 +197,8 @@ power values in different packets.
 
 ### Stop behavior
 
-- Manual Stop finalizes every stream and then writes the manifest.
+- Reaching 30 seconds or 1 minute finalizes every stream and writes the manifest.
+- Manual Stop can finalize a session before its planned duration.
 - Serial disconnect, camera end, video error, or file-write error initiates stop.
 - Closing or reloading the page while recording triggers a browser warning.
 - A browser/OS crash before writable streams close can leave the current session

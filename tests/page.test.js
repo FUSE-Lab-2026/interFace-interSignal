@@ -22,7 +22,8 @@ assert.equal((html.match(/data-view-button=/g) || []).length, 2);
 for (const id of [
   "choose-folder",
   "enable-camera",
-  "start-recording",
+  "start-recording-30",
+  "start-recording-60",
   "stop-recording",
   "camera-preview",
   "camera-capture",
@@ -33,5 +34,9 @@ assert(recorder.includes("TGAMSerialSource.onFrame(recordFrame)"));
 assert(recorder.includes("captureStream(VIDEO.framesPerSecond)"));
 assert(recorder.includes("videoBitsPerSecond: VIDEO.bitsPerSecond"));
 assert(recorder.includes("audio: false"));
+assert(recorder.includes("startRecording(30000)"));
+assert(recorder.includes("startRecording(60000)"));
+assert(sketch.includes('cardsById.get("contact")'));
+assert(sketch.includes('cardsById.get("raw")'));
 
 console.log("Standalone page structure tests passed");
