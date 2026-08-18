@@ -6,6 +6,7 @@ const publicPath = path.join(__dirname, "..", "public");
 const html = fs.readFileSync(path.join(publicPath, "index.html"), "utf8");
 const sketch = fs.readFileSync(path.join(publicPath, "sketch.js"), "utf8");
 const recorder = fs.readFileSync(path.join(publicPath, "recorder.js"), "utf8");
+const styles = fs.readFileSync(path.join(publicPath, "style.css"), "utf8");
 
 const cardIds = Array.from(html.matchAll(/data-card-id="([^"]+)"/g), (match) => match[1]);
 assert.deepEqual(cardIds, ["contact", "movement", "eyes", "raw", "bands", "esense"]);
@@ -41,5 +42,7 @@ assert(sketch.includes('cardsById.get("raw")'));
 assert(sketch.includes("const getRecordPanelBounds ="));
 assert(!sketch.includes('cardsById.get("bands")'));
 assert(!sketch.includes('cardsById.get("esense")'));
+assert(styles.includes("width: min(100%, 190px)"));
+assert(styles.includes("grid-template-columns: repeat(4, minmax(0, 1fr))"));
 
 console.log("Standalone page structure tests passed");

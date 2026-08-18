@@ -269,6 +269,8 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - 619 px 이하에서는 Signal Contact, Raw EEG, camera, recorder 순서로 1열 배치한다.
 - Record view에서는 Movement, Eyes Closed, Band Power, Attention/Meditation을 표시하지 않는다.
 - recorder card는 folder, 30초/1분 시작, Stop, 남은 시간, frame/raw count를 표시한다.
+- camera preview는 최대 190 px 너비로 제한하고 recorder status는 1행 4열로 표시해
+  300 px 높이 card와 짧고 넓은 browser viewport에서도 내부 요소가 넘치지 않게 한다.
 
 ## 파일별 책임
 
@@ -308,6 +310,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] 일반적인 640 x 480 camera 입력 요청, preview frame 대기, permission 오류 표시
 - [x] 30초/1분 시작 옵션, 남은 시간 표시, 자동 stop/finalize 구현
 - [x] Record view를 Signal Contact, Raw EEG, camera, recorder의 compact 4-card 연속형 grid로 구성
+- [x] 1,266 x 666 short-wide viewport에서 camera/control card overflow 수정
 - [x] session JSON manifest와 자동 stop/finalize 구현
 - [x] parser, mock serial, recorder lifecycle, page structure 자동 테스트 통과
 - [x] 1,440 x 900 desktop 및 500 px narrow browser render 확인

@@ -166,7 +166,7 @@ body[data-view="record"] .panel-toggles {
 .camera-panel {
   grid-column: 1;
   grid-row: 2;
-  padding: 28px;
+  padding: 18px;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto;
   align-content: stretch;
@@ -176,8 +176,8 @@ body[data-view="record"] .panel-toggles {
 
 .record-card-number {
   position: absolute;
-  top: 28px;
-  left: 28px;
+  top: 18px;
+  left: 18px;
   z-index: 2;
   color: #848484;
   font-size: 10px;
@@ -185,7 +185,7 @@ body[data-view="record"] .panel-toggles {
 
 .camera-frame {
   position: relative;
-  width: min(100%, 280px);
+  width: min(100%, 190px);
   min-height: 0;
   align-self: center;
   aspect-ratio: 4 / 3;
@@ -252,24 +252,24 @@ body[data-view="record"] .panel-toggles {
 .record-controls {
   grid-column: 2;
   grid-row: 2;
-  padding: 28px;
+  padding: 18px;
   display: grid;
   align-content: start;
-  gap: 14px;
+  gap: 8px;
 }
 
 .record-actions {
-  margin-top: 30px;
+  margin-top: 20px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 5px;
 }
 
 .tool-button {
   min-width: 0;
   width: 100%;
-  height: 36px;
-  padding: 0 14px;
+  height: 32px;
+  padding: 0 8px;
   border: 1px solid #777;
   border-radius: 4px;
   background: #1b1d1e;
@@ -306,27 +306,27 @@ body[data-view="record"] .panel-toggles {
 .record-status-grid {
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   border-top: 1px solid #d3d3cd;
   border-left: 1px solid #d3d3cd;
 }
 
 .record-status-grid div {
   min-width: 0;
-  padding: 9px;
+  padding: 6px;
   border-right: 1px solid #d3d3cd;
   border-bottom: 1px solid #d3d3cd;
 }
 
 .record-status-grid dd {
   overflow-wrap: anywhere;
-  font-size: 16px;
+  font-size: 13px;
 }
 
 .record-destination {
   display: grid;
-  gap: 8px;
-  padding-top: 10px;
+  gap: 4px;
+  padding-top: 7px;
   border-top: 1px solid #d3d3cd;
 }
 
@@ -343,10 +343,10 @@ body[data-view="record"] .panel-toggles {
 }
 
 .record-message {
-  min-height: 32px;
+  min-height: 24px;
   margin: 0;
   color: #6f716e;
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1.5;
 }
 
@@ -356,68 +356,6 @@ body[data-view="record"] .panel-toggles {
 
 .record-files {
   display: none;
-}
-
-@media (max-width: 979px) {
-  .camera-panel {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  .record-controls {
-    grid-column: 2;
-    grid-row: 2;
-  }
-
-  .camera-panel,
-  .record-controls {
-    padding: 18px;
-  }
-
-  .record-card-number {
-    top: 18px;
-    left: 18px;
-  }
-
-  .camera-frame {
-    width: min(100%, 190px);
-  }
-
-  .record-actions {
-    margin-top: 20px;
-    gap: 5px;
-  }
-
-  .tool-button {
-    height: 32px;
-    padding: 0 8px;
-  }
-
-  .record-controls {
-    gap: 8px;
-  }
-
-  .record-status-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .record-status-grid div {
-    padding: 6px;
-  }
-
-  .record-status-grid dd {
-    font-size: 13px;
-  }
-
-  .record-destination {
-    gap: 4px;
-    padding-top: 7px;
-  }
-
-  .record-message {
-    min-height: 24px;
-    font-size: 10px;
-  }
 }
 
 @media (max-width: 619px) {
