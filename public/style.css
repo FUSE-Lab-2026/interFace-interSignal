@@ -138,10 +138,14 @@ body[data-view="record"] .panel-toggles {
 .recording-view {
   position: absolute;
   z-index: 1;
-  inset: 0;
-  padding: 104px 16px 16px;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: min(calc(100% - 32px), 944px);
+  padding: 104px 0 16px;
+  transform: translateX(-50%);
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 8px;
   pointer-events: none;
@@ -160,8 +164,8 @@ body[data-view="record"] .panel-toggles {
 }
 
 .camera-panel {
-  grid-column: 2;
-  grid-row: 1;
+  grid-column: 1;
+  grid-row: 2;
   padding: 28px;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto;
@@ -246,8 +250,8 @@ body[data-view="record"] .panel-toggles {
 }
 
 .record-controls {
-  grid-column: 3;
-  grid-row: 1;
+  grid-column: 2;
+  grid-row: 2;
   padding: 28px;
   display: grid;
   align-content: start;
@@ -355,18 +359,13 @@ body[data-view="record"] .panel-toggles {
 }
 
 @media (max-width: 979px) {
-  .recording-view {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(3, minmax(0, 1fr));
-  }
-
   .camera-panel {
-    grid-column: 2;
-    grid-row: 1;
+    grid-column: 1;
+    grid-row: 2;
   }
 
   .record-controls {
-    grid-column: 1;
+    grid-column: 2;
     grid-row: 2;
   }
 
@@ -428,18 +427,18 @@ body[data-view="record"] .panel-toggles {
 
   .recording-view {
     grid-template-columns: 1fr;
-    grid-template-rows: repeat(6, minmax(0, 1fr));
+    grid-template-rows: repeat(4, minmax(0, 1fr));
   }
 
   .camera-panel {
     grid-column: 1;
-    grid-row: 2;
+    grid-row: 3;
     padding: 12px;
   }
 
   .record-controls {
     grid-column: 1;
-    grid-row: 3;
+    grid-row: 4;
     padding: 12px;
   }
 

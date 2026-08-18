@@ -60,9 +60,10 @@ Chromium.
 5. Press **30 s** or **1 min**. The session stops and finalizes automatically;
    **Stop** remains available for an early finish.
 
-The Record view keeps Signal Contact, Raw EEG, Band Power, and
-Attention/Meditation in their original grid positions. Its two compact recorder
-cards replace Movement and Eyes Closed only.
+The Record view is a compact continuation of the signal grid. It carries over
+only Signal Contact and Raw EEG, then adds one camera card and one recording
+control card. The four cards form a centered 2 x 2 grid on larger screens and
+stack in the same order on narrow screens.
 
 Each session writes directly to the selected folder:
 

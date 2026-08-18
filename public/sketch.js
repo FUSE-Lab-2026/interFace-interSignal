@@ -2,6 +2,7 @@ const signalGuessingSketch = (p) => {
   const PAGE_PADDING = 16;
   const HEADER_HEIGHT = 104;
   const PANEL_GAP = 8;
+  const RECORD_MAX_WIDTH = 944;
   const BUTTON_WIDTH = 132;
   const RAW_HISTORY_SIZE = 1024;
   const RAW_DISPLAY_SIZE = 512;
@@ -48,7 +49,7 @@ const signalGuessingSketch = (p) => {
 
   const isRecordView = () => document.body.dataset.view === "record";
 
-  const getLayoutCardCount = () => isRecordView() ? CARD_IDS.length : visibleCardIds.size;
+  const getLayoutCardCount = () => isRecordView() ? 4 : visibleCardIds.size;
 
   const resizeForLayout = () => {
     const height = getCanvasHeight(p.windowWidth, p.windowHeight, getLayoutCardCount());
@@ -157,6 +158,7 @@ const signalGuessingSketch = (p) => {
     }
     p.fill(connected ? 210 : 135);
     p.textAlign(p.RIGHT, p.CENTER);
+    p.textSize(10);
     p.text(sourceLabel, p.width - PAGE_PADDING - BUTTON_WIDTH - 12, 28);
 
     const qualityLabel = connected && Number.isFinite(signalQuality)
@@ -178,6 +180,23 @@ const signalGuessingSketch = (p) => {
 
     return Array.from({ length: cardCount }, (_, index) => ({
       x: PAGE_PADDING + index % columns * (width + PANEL_GAP),
+      y: HEADER_HEIGHT + Math.floor(index / columns) * (height + PANEL_GAP),
+      width,
+      height,
+    }));
+  };
+
+  const getRecordPanelBounds = () => {
+    const columns = p.width < 620 ? 1 : 2;
+    const rows = Math.ceil(4 / columns);
+    const contentWidth = Math.min(p.width - PAGE_PADDING * 2, RECORD_MAX_WIDTH);
+    const contentX = (p.width - contentWidth) / 2;
+    const contentHeight = p.height - HEADER_HEIGHT - PAGE_PADDING;
+    const width = (contentWidth - PANEL_GAP * (columns - 1)) / columns;
+    const height = (contentHeight - PANEL_GAP * (rows - 1)) / rows;
+
+    return Array.from({ length: 4 }, (_, index) => ({
+      x: contentX + index % columns * (width + PANEL_GAP),
       y: HEADER_HEIGHT + Math.floor(index / columns) * (height + PANEL_GAP),
       width,
       height,
@@ -393,13 +412,11 @@ const signalGuessingSketch = (p) => {
       const cardsById = new Map(allCards.map((card) => [card.id, card]));
       const recordSlots = [
         cardsById.get("contact"),
-        null,
-        null,
         cardsById.get("raw"),
-        cardsById.get("bands"),
-        cardsById.get("esense"),
+        null,
+        null,
       ];
-      const panelBounds = getPanelBounds(recordSlots.length);
+      const panelBounds = getRecordPanelBounds();
       recordSlots.forEach((card, index) => {
         if (card) drawPanel(card, panelBounds[index]);
       });

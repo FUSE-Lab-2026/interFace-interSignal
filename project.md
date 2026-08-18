@@ -2,8 +2,8 @@
 
 ## 문서 정보
 
-- 마지막 업데이트: 2026-08-14
-- 현재 단계: 6-slot 실시간 시각화와 30초/1분 동시 녹화 MVP 구현 완료, 실제 TGAM/카메라 통합 검증 전
+- 마지막 업데이트: 2026-08-18
+- 현재 단계: 6-card Signals와 4-card 연속형 Record UI, 30초/1분 동시 녹화 MVP 구현 완료, 실제 TGAM/카메라 통합 검증 전
 - 저장소: `FUSE-Lab-2026/interFace-interSignal`
 - 기준 브랜치: `main`
 - 문서 역할: 데이터 규격, MVP 범위, 구현 상태, 검증 상태를 관리하는 단일 기준 문서
@@ -262,10 +262,12 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - 상단 `Signals`와 `Record` tab으로 view 전환
 - `#signals`, `#record` hash URL로 각 view 직접 접근
 - serial connect button은 두 view에서 같은 source를 제어
-- Record view는 항상 6-slot grid를 유지한다.
-- slot 01, 04, 05, 06에는 Signal Contact, Raw EEG, Band Power,
-  Attention/Meditation을 계속 표시한다.
-- 기존 Movement와 Eyes Closed 자리인 slot 02, 03만 camera와 compact recorder로 교체한다.
+- Record view는 Signals의 시각 언어를 이어받는 4-card grid다.
+- 첫 행에는 Signal Contact와 Raw EEG만 이어서 표시한다.
+- 둘째 행에는 같은 card 크기의 camera와 compact recorder를 표시한다.
+- 620 px 이상에서는 최대 944 px 너비의 가운데 정렬 2 x 2 grid를 사용한다.
+- 619 px 이하에서는 Signal Contact, Raw EEG, camera, recorder 순서로 1열 배치한다.
+- Record view에서는 Movement, Eyes Closed, Band Power, Attention/Meditation을 표시하지 않는다.
 - recorder card는 folder, 30초/1분 시작, Stop, 남은 시간, frame/raw count를 표시한다.
 
 ## 파일별 책임
@@ -305,7 +307,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] 134 x 100, 8 FPS, 50 kbps 요청, audio 없는 WebM recorder 구현
 - [x] 일반적인 640 x 480 camera 입력 요청, preview frame 대기, permission 오류 표시
 - [x] 30초/1분 시작 옵션, 남은 시간 표시, 자동 stop/finalize 구현
-- [x] Record view에서 slot 02/03만 camera/recorder로 교체하고 나머지 live card 유지
+- [x] Record view를 Signal Contact, Raw EEG, camera, recorder의 compact 4-card 연속형 grid로 구성
 - [x] session JSON manifest와 자동 stop/finalize 구현
 - [x] parser, mock serial, recorder lifecycle, page structure 자동 테스트 통과
 - [x] 1,440 x 900 desktop 및 500 px narrow browser render 확인

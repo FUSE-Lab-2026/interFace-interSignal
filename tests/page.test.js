@@ -38,5 +38,8 @@ assert(recorder.includes("startRecording(30000)"));
 assert(recorder.includes("startRecording(60000)"));
 assert(sketch.includes('cardsById.get("contact")'));
 assert(sketch.includes('cardsById.get("raw")'));
+assert(sketch.includes("const getRecordPanelBounds ="));
+assert(!sketch.includes('cardsById.get("bands")'));
+assert(!sketch.includes('cardsById.get("esense")'));
 
 console.log("Standalone page structure tests passed");
