@@ -288,6 +288,13 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - 최대 pair 수: 3
 - raw 입력 columns: `sample_index`, `elapsed_ms`, `unix_ms`, `raw`
 - 전처리: 없음. filtering, interpolation, resampling을 하지 않음
+- `elapsed_ms`, `unix_ms`: browser가 sample을 받은 시점으로 원본 그대로 유지
+- 표시 순서: `sample_index` 오름차순
+- 표시 timeline: 유효한 sample rate header가 있으면
+  `first_elapsed_ms + (sample_index - first_sample_index) * 1000 / expected_sample_rate_hz`
+  사용. 512 Hz에서는 sample 간격이 1.953125 ms
+- sample rate header가 없거나 유효하지 않으면 `elapsed_ms` 사용
+- timeline 복원은 x 좌표만 바꾸며 raw 값을 수정하거나 sample을 추가/삭제하지 않음
 - 현재 EEG 시각화 시간: 해당 session의 `video.currentTime * 1000`
 - 표시 window: 4,000 ms
 - 일반 window 위치: current time 이전 3,000 ms부터 이후 최대 1,000 ms
@@ -344,6 +351,9 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] 실제 2026-08-11 raw EEG TXT 6,552 samples parsing 확인
 - [x] 실제 camera-240p WebM/TXT pair browser load 및 1.6초 video/waveform 동시 진행 확인
 - [x] 실제/복제 pair 3개 browser load, `3 / 3` count와 Add 비활성화 확인
+- [x] 실제 TXT 2개의 timestamp burst 확인: sample의 약 69-74%가 직전 sample과 같은
+  rounded `elapsed_ms`를 사용하며 일반 burst 크기는 4-5 samples
+- [x] Playback x축을 512 Hz sample-index clock으로 복원하고 실제 pair render 확인
 
 ### 실제 장비로 확인 필요
 
@@ -394,6 +404,9 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
   불완전할 수 있다.
 - MediaRecorder의 실제 codec/bitrate는 browser가 요청과 다르게 선택할 수 있다.
 - Playback file pairing은 현재 filename suffix 규격에 의존한다.
+- recorder의 `elapsed_ms`는 장비 sample clock이 아니라 browser receipt clock이라 같은
+  serial read에서 처리한 4-5 samples가 같은 millisecond 값을 가질 수 있다. Playback은
+  header sample rate와 `sample_index`로 표시 시간을 복원한다.
 - 세 video의 공통 Play는 같은 사용자 동작에서 시작하지만 frame-level 장비 간 동기화는 보장하지 않는다.
 
 ## 실행 및 검증

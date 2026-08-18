@@ -79,7 +79,7 @@ const TGAMPlayback = (() => {
       context.stroke();
     }
 
-    const rawDurationMs = samples.length ? samples[samples.length - 1].elapsedMs : 0;
+    const rawDurationMs = samples.length ? samples[samples.length - 1].timelineMs : 0;
     const currentMs = Math.max(0, video.currentTime * 1000);
     const totalMs = Math.max(rawDurationMs, Number.isFinite(video.duration) ? video.duration * 1000 : 0);
     const playbackWindow = getPlaybackWindow(currentMs, totalMs);
@@ -92,7 +92,7 @@ const TGAMPlayback = (() => {
       context.beginPath();
       for (let index = range.startIndex; index < range.endIndex; index += 1) {
         const sample = samples[index];
-        const x = graph.x + (sample.elapsedMs - playbackWindow.startMs) / durationMs * graph.width;
+        const x = graph.x + (sample.timelineMs - playbackWindow.startMs) / durationMs * graph.width;
         const limited = Math.max(-RAW_DISPLAY_LIMIT, Math.min(RAW_DISPLAY_LIMIT, sample.raw));
         const y = graph.y + (RAW_DISPLAY_LIMIT - limited) / (RAW_DISPLAY_LIMIT * 2) * graph.height;
         if (index === range.startIndex) context.moveTo(x, y);

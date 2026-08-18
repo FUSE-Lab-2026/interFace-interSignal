@@ -25,6 +25,10 @@ const parsed = PlaybackCore.parseRawEegText([
 ].join("\n"));
 assert.equal(parsed.expectedSampleRateHz, 512);
 assert.deepEqual(parsed.samples.map((sample) => sample.raw), [-100, 50, 200]);
+assert.equal(parsed.timelineMode, "sample_index");
+assert.equal(parsed.samples[0].timelineMs, 0);
+assert.equal(parsed.samples[1].timelineMs, 1000 / 512);
+assert.equal(parsed.samples[2].timelineMs, 2000 / 512);
 
 assert.deepEqual(PlaybackCore.getPlaybackWindow(0, 10000), {
   startMs: 0,

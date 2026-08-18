@@ -91,11 +91,16 @@ EEG TXT pair together. The filename before `-camera-*p.webm` and
 - Each session displays camera and raw EEG side by side.
 - The raw waveform follows that session video's `currentTime`, including native
   video seeking.
+- Waveform x positions use `sample_index` and the TXT header sample rate
+  (normally 512 Hz). The recorded `elapsed_ms` remains available as browser
+  receipt timing, but serial chunk bursts do not collapse samples onto one x
+  coordinate.
 - The graph shows a moving four-second window: three seconds before the current
   time and up to one second ahead.
 - **Play all**, **Pause**, and **Restart** control every loaded session; each
   native video control can still be used independently.
-- Playback applies no filtering, interpolation, or resampling to the TXT values.
+- Playback applies no filtering, interpolation, or resampling to the TXT values;
+  sample-clock reconstruction changes only their display positions.
 
 Current `camera-100p.webm` and earlier `camera-240p.webm` filenames are both
 accepted. Files stay local and are loaded through browser object URLs.

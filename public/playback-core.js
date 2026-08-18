@@ -60,8 +60,23 @@
       if (![sampleIndex, elapsedMs, unixMs, raw].every(Number.isFinite)) continue;
       samples.push({ sampleIndex, elapsedMs, unixMs, raw });
     }
-    samples.sort((left, right) => left.elapsedMs - right.elapsedMs || left.sampleIndex - right.sampleIndex);
-    return { expectedSampleRateHz, samples };
+    samples.sort((left, right) => left.sampleIndex - right.sampleIndex);
+    const firstSample = samples[0];
+    const useSampleClock = firstSample && Number.isFinite(expectedSampleRateHz) && expectedSampleRateHz > 0;
+    for (const sample of samples) {
+      sample.timelineMs = useSampleClock
+        ? firstSample.elapsedMs + (sample.sampleIndex - firstSample.sampleIndex) * 1000 / expectedSampleRateHz
+        : sample.elapsedMs;
+    }
+    return {
+      expectedSampleRateHz,
+      samples,
+      timelineMode: useSampleClock ? "sample_index" : "receipt_elapsed",
+    };
+  };
+
+  const sampleTimeMs = (sample) => {
+    return Number.isFinite(sample.timelineMs) ? sample.timelineMs : sample.elapsedMs;
   };
 
   const lowerBound = (samples, elapsedMs) => {
@@ -69,7 +84,7 @@
     let high = samples.length;
     while (low < high) {
       const middle = Math.floor((low + high) / 2);
-      if (samples[middle].elapsedMs < elapsedMs) low = middle + 1;
+      if (sampleTimeMs(samples[middle]) < elapsedMs) low = middle + 1;
       else high = middle;
     }
     return low;

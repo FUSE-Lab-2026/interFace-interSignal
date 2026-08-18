@@ -221,8 +221,16 @@ power values in different packets.
 
 - The TXT parser ignores comment lines and the column-header row.
 - Used columns: `sample_index`, `elapsed_ms`, `unix_ms`, `raw`.
-- Samples are ordered by `elapsed_ms`; raw values are not filtered, interpolated,
-  or resampled.
+- `elapsed_ms` and `unix_ms` are retained as browser receipt times. Web Serial
+  can deliver several packets in one read, so consecutive samples can share the
+  same rounded `elapsed_ms` value.
+- Samples are ordered by `sample_index`. With a valid TXT header sample rate,
+  each display timestamp is reconstructed as
+  `first_elapsed_ms + (sample_index - first_sample_index) * 1000 / expected_sample_rate_hz`.
+  At 512 Hz, adjacent samples are 1.953125 ms apart.
+- If the header has no valid sample rate, playback falls back to `elapsed_ms`.
+- Timeline reconstruction changes only x positions. Raw values are not filtered,
+  smoothed, interpolated, or resampled, and no samples are inserted or removed.
 - Each waveform uses its own video's `currentTime * 1000` as the current EEG
   timestamp.
 - The visible window is 4,000 ms. Normally it starts 3,000 ms before the current
