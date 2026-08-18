@@ -6,6 +6,17 @@ experiment, observe, and guess what each display responds to.
 
 This is an exploratory visualization, not a medical or diagnostic tool.
 
+## Hosted version
+
+The static browser app is published at:
+
+<https://fuse-lab-2026.github.io/interFace-interSignal/>
+
+GitHub Pages serves the files in `public/` through the Pages workflow. The
+hosted HTTPS version can use Web Serial, camera permission, local recording, and
+local playback in supported desktop Chromium browsers. `server.js` is used only
+for local development and is not part of the hosted runtime.
+
 ## Run
 
 Requirements:

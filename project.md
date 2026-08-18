@@ -3,7 +3,7 @@
 ## 문서 정보
 
 - 마지막 업데이트: 2026-08-18
-- 현재 단계: Signals/Record/Playback 3개 view와 최대 3개 녹화 비교 재생 MVP 구현 완료, 실제 TGAM/카메라 통합 검증 전
+- 현재 단계: Signals/Record/Playback MVP 및 GitHub Pages 자동 배포 구성 완료, 실제 TGAM/카메라 통합 검증 전
 - 저장소: `FUSE-Lab-2026/interFace-interSignal`
 - 기준 브랜치: `main`
 - 문서 역할: 데이터 규격, MVP 범위, 구현 상태, 검증 상태를 관리하는 단일 기준 문서
@@ -45,6 +45,7 @@ TGAM EEG를 처음 접하는 워크숍 참여자가 용어를 먼저 배우기�
 - 30초 또는 1분 고정 길이 녹화와 자동 finalize
 - session 설정과 parser 통계를 담은 JSON manifest 저장
 - 최대 3개 camera WebM/raw EEG TXT pair의 browser-only 비교 재생
+- `public/` 정적 파일을 GitHub Pages에 자동 배포
 
 ### MVP에서 제외
 
@@ -75,6 +76,15 @@ Local camera WebM + raw EEG TXT
 
 Node는 `public/`을 `localhost`에 제공하는 정적 서버 역할만 한다. Node가 시리얼
 포트를 열거나 TGAM 패킷을 처리하지 않는다.
+
+### 배포 구성
+
+- 공개 URL: `https://fuse-lab-2026.github.io/interFace-interSignal/`
+- source: `main` branch의 `public/` directory
+- workflow: `.github/workflows/pages.yml`
+- trigger: `main`의 `public/**` 또는 workflow 변경 push, 수동 `workflow_dispatch`
+- runtime: 정적 HTML/CSS/JavaScript와 p5.js CDN; `server.js`는 배포하지 않음
+- browser API: GitHub Pages HTTPS origin에서 Web Serial, camera, File System Access API 사용
 
 ## 데이터 규격
 
@@ -354,6 +364,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] 실제 TXT 2개의 timestamp burst 확인: sample의 약 69-74%가 직전 sample과 같은
   rounded `elapsed_ms`를 사용하며 일반 burst 크기는 4-5 samples
 - [x] Playback x축을 512 Hz sample-index clock으로 복원하고 실제 pair render 확인
+- [x] `public/` 전용 GitHub Pages Actions workflow 추가
 
 ### 실제 장비로 확인 필요
 
@@ -404,6 +415,9 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
   불완전할 수 있다.
 - MediaRecorder의 실제 codec/bitrate는 browser가 요청과 다르게 선택할 수 있다.
 - Playback file pairing은 현재 filename suffix 규격에 의존한다.
+- GitHub Pages에서 p5.js CDN을 사용하므로 최초 load에는 인터넷 연결이 필요하다.
+- Web Serial과 File System Access API 지원 범위 때문에 hosted version도 desktop
+  Chromium 사용을 전제로 한다.
 - recorder의 `elapsed_ms`는 장비 sample clock이 아니라 browser receipt clock이라 같은
   serial read에서 처리한 4-5 samples가 같은 millisecond 값을 가질 수 있다. Playback은
   header sample rate와 `sample_index`로 표시 시간을 복원한다.
@@ -418,6 +432,7 @@ npm test
 
 - 기본 URL: `http://localhost:3000`
 - 다른 port 예시: `PORT=8091 npm start`
+- GitHub Pages: `https://fuse-lab-2026.github.io/interFace-interSignal/`
 - 현재 자동 테스트: parser packet/split/checksum/physical frame, mock Web Serial,
   recorder format, mock folder/camera/MediaRecorder session lifecycle, page structure
 
