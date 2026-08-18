@@ -203,3 +203,39 @@ power values in different packets.
 - Closing or reloading the page while recording triggers a browser warning.
 - A browser/OS crash before writable streams close can leave the current session
   incomplete.
+
+## Recording playback
+
+### Input pairing
+
+- Playback accepts up to three complete file pairs.
+- Raw EEG filename: `<session>-raw-eeg.txt`
+- Camera filename: `<session>-camera-100p.webm`; the earlier
+  `<session>-camera-240p.webm` form is also accepted.
+- The common `<session>` filename stem pairs the two files. NDJSON and manifest
+  files are not required for playback.
+- Files are read locally with `File.text()` and browser object URLs. They are not
+  uploaded or sent to `server.js`.
+
+### Raw EEG timeline
+
+- The TXT parser ignores comment lines and the column-header row.
+- Used columns: `sample_index`, `elapsed_ms`, `unix_ms`, `raw`.
+- Samples are ordered by `elapsed_ms`; raw values are not filtered, interpolated,
+  or resampled.
+- Each waveform uses its own video's `currentTime * 1000` as the current EEG
+  timestamp.
+- The visible window is 4,000 ms. Normally it starts 3,000 ms before the current
+  timestamp, leaving up to 1,000 ms ahead of the cursor. At either file boundary,
+  the window shifts to remain within the available duration.
+- Display clipping remains fixed at raw values `-2048` to `+2048`; clipping only
+  affects drawing and does not modify loaded samples.
+- Native video seeking immediately changes the waveform window.
+
+### Multi-session behavior
+
+- `Play all`, `Pause`, and `Restart` operate on every loaded video.
+- Camera and EEG synchronization is maintained within each recording because the
+  EEG cursor reads that recording's video clock.
+- Up to three recordings are rendered as vertically stacked comparison rows.
+- Removing or clearing a recording pauses the video and revokes its object URL.

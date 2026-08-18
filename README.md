@@ -80,6 +80,26 @@ preview frame. The recorded stream is independently downsampled through a
 camera busy in another app are shown as distinct errors. The browser may choose
 a slightly different actual video bitrate than requested.
 
+## Playback tab
+
+`Playback` or `#playback` compares the recorded camera and raw EEG in the
+browser. Press **Add recordings** and select each matching camera WebM and raw
+EEG TXT pair together. The filename before `-camera-*p.webm` and
+`-raw-eeg.txt` identifies the session.
+
+- Up to three sessions can be loaded at once.
+- Each session displays camera and raw EEG side by side.
+- The raw waveform follows that session video's `currentTime`, including native
+  video seeking.
+- The graph shows a moving four-second window: three seconds before the current
+  time and up to one second ahead.
+- **Play all**, **Pause**, and **Restart** control every loaded session; each
+  native video control can still be used independently.
+- Playback applies no filtering, interpolation, or resampling to the TXT values.
+
+Current `camera-100p.webm` and earlier `camera-240p.webm` filenames are both
+accepted. Files stay local and are loaded through browser object URLs.
+
 Exact formulas, FFT windows, frequency ranges, and limitations are documented in
 [PROCESSING.md](PROCESSING.md).
 
@@ -98,6 +118,8 @@ TGAM serial bytes
      -> frame NDJSON + raw EEG text recorder
 
 Web camera -> preview -> 134 x 100 canvas -> MediaRecorder -> WebM file
+
+local camera WebM + raw EEG TXT -> browser playback -> synchronized video/waveform
 ```
 
 Node only serves static files on localhost. It does not access the serial port,
@@ -117,7 +139,7 @@ access to the Mac's serial port.
 ## Project structure
 
 ```text
-public/index.html          Signals/Record tabs and page entry
+public/index.html          Signals/Record/Playback tabs and page entry
 public/serial-source.js    Web Serial lifecycle and packet dispatch
 public/tgam-parser.js      ThinkGear packet framing and checksum parser
 public/derived-signals.js  contact and spectral score calculations
@@ -125,6 +147,8 @@ public/sketch.js           responsive p5 cards, visibility, and visual mappings
 public/style.css           page and serial-button styling
 public/recorder-core.js    recording constants and pure file formatting
 public/recorder.js         folder, camera, TGAM, and session recording lifecycle
+public/playback-core.js    playback file pairing, TXT parsing, and time windows
+public/playback.js         multi-session video and raw EEG playback
 public/tabs.js             hash-addressable in-app view switching
 server.js                  dependency-free localhost static server
 tests/                     parser and mocked Web Serial tests

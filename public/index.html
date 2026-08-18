@@ -13,6 +13,7 @@
     <nav class="app-tabs" aria-label="Application views">
       <button class="app-tab is-active" type="button" data-view-button="signals" aria-selected="true">Signals</button>
       <button class="app-tab" type="button" data-view-button="record" aria-selected="false">Record</button>
+      <button class="app-tab" type="button" data-view-button="playback" aria-selected="false">Playback</button>
     </nav>
     <nav class="panel-toggles" aria-label="Visible signal cards">
       <label class="panel-toggle" aria-label="Toggle signal card 01">
@@ -92,6 +93,23 @@
         <div class="record-file"><span>MANIFEST</span><output id="manifest-file">--</output></div>
       </div>
     </section>
+
+    <section id="playback-view" class="playback-view" hidden>
+      <header class="playback-toolbar">
+        <div class="playback-actions">
+          <button id="add-playback" class="playback-button" type="button">Add recordings</button>
+          <button id="play-all" class="playback-button" type="button" disabled>Play all</button>
+          <button id="pause-playback" class="playback-button" type="button" disabled>Pause</button>
+          <button id="restart-playback" class="playback-button" type="button" disabled>Restart</button>
+          <button id="clear-playback" class="playback-button" type="button" disabled>Clear</button>
+        </div>
+        <output id="playback-count" class="playback-count">0 / 3</output>
+        <input id="playback-files" type="file" accept=".txt,.webm,video/webm" multiple hidden />
+      </header>
+      <p id="playback-message" class="playback-message" role="status" aria-live="polite">No recordings loaded.</p>
+      <div id="playback-empty" class="playback-empty">NO RECORDINGS</div>
+      <div id="playback-list" class="playback-list"></div>
+    </section>
   </main>
   <script src="./tgam-parser.js"></script>
   <script src="./derived-signals.js"></script>
@@ -99,6 +117,8 @@
   <script src="./tabs.js"></script>
   <script src="./recorder-core.js"></script>
   <script src="./recorder.js"></script>
+  <script src="./playback-core.js"></script>
+  <script src="./playback.js"></script>
   <script src="./sketch.js"></script>
 </body>
 </html>

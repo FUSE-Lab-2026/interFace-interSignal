@@ -6,6 +6,7 @@ const publicPath = path.join(__dirname, "..", "public");
 const html = fs.readFileSync(path.join(publicPath, "index.html"), "utf8");
 const sketch = fs.readFileSync(path.join(publicPath, "sketch.js"), "utf8");
 const recorder = fs.readFileSync(path.join(publicPath, "recorder.js"), "utf8");
+const playback = fs.readFileSync(path.join(publicPath, "playback.js"), "utf8");
 const styles = fs.readFileSync(path.join(publicPath, "style.css"), "utf8");
 
 const cardIds = Array.from(html.matchAll(/data-card-id="([^"]+)"/g), (match) => match[1]);
@@ -19,7 +20,7 @@ for (const drawFunction of ["drawContact", "drawMovement", "drawEyes", "drawRaw"
 assert(sketch.includes("[data-card-id]:checked"));
 assert(sketch.includes("resizeForLayout()"));
 assert(sketch.includes("TGAM Q ${Math.round(signalQuality)}/200"));
-assert.equal((html.match(/data-view-button=/g) || []).length, 2);
+assert.equal((html.match(/data-view-button=/g) || []).length, 3);
 for (const id of [
   "choose-folder",
   "enable-camera",
@@ -44,5 +45,20 @@ assert(!sketch.includes('cardsById.get("bands")'));
 assert(!sketch.includes('cardsById.get("esense")'));
 assert(styles.includes("width: min(100%, 190px)"));
 assert(styles.includes("grid-template-columns: repeat(4, minmax(0, 1fr))"));
+for (const id of [
+  "playback-view",
+  "add-playback",
+  "play-all",
+  "pause-playback",
+  "restart-playback",
+  "clear-playback",
+  "playback-files",
+  "playback-list",
+]) {
+  assert(html.includes(`id="${id}"`), `${id} is missing`);
+}
+assert(playback.includes("pairRecordingFiles(fileList)"));
+assert(playback.includes("video.currentTime * 1000"));
+assert(playback.includes("MAX_RECORDINGS"));
 
 console.log("Standalone page structure tests passed");

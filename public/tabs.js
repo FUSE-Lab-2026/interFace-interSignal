@@ -1,16 +1,27 @@
 const AppTabs = (() => {
   const buttons = Array.from(document.querySelectorAll("[data-view-button]"));
-  const recordingView = document.querySelector("#recording-view");
+  const views = {
+    record: document.querySelector("#recording-view"),
+    playback: document.querySelector("#playback-view"),
+  };
+  const validViews = new Set(["signals", ...Object.keys(views)]);
   let activeView = "signals";
 
+  const viewFromHash = () => {
+    const view = window.location.hash.slice(1);
+    return validViews.has(view) ? view : "signals";
+  };
+
   const setView = (view, updateLocation = true) => {
-    if (view !== "signals" && view !== "record") return;
+    if (!validViews.has(view)) return;
     activeView = view;
     if (updateLocation && window.location.hash !== `#${view}`) {
       window.history.replaceState(null, "", `#${view}`);
     }
     document.body.dataset.view = view;
-    recordingView.hidden = view !== "record";
+    for (const [viewName, element] of Object.entries(views)) {
+      element.hidden = view !== viewName;
+    }
     for (const button of buttons) {
       const active = button.dataset.viewButton === view;
       button.classList.toggle("is-active", active);
@@ -25,10 +36,10 @@ const AppTabs = (() => {
   }
 
   window.addEventListener("hashchange", () => {
-    setView(window.location.hash === "#record" ? "record" : "signals", false);
+    setView(viewFromHash(), false);
   });
 
-  setView(window.location.hash === "#record" ? "record" : "signals", false);
+  setView(viewFromHash(), false);
 
   return {
     getActiveView: () => activeView,

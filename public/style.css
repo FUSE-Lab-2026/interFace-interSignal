@@ -131,6 +131,12 @@ body[data-view="record"] .panel-toggles {
   display: none;
 }
 
+body[data-view="playback"] .panel-toggles,
+body[data-view="playback"] .signal-canvas,
+body[data-view="playback"] .serial-button {
+  display: none;
+}
+
 .recording-view[hidden] {
   display: none;
 }
@@ -358,6 +364,210 @@ body[data-view="record"] .panel-toggles {
   display: none;
 }
 
+.playback-view[hidden] {
+  display: none;
+}
+
+.playback-view {
+  width: min(calc(100% - 32px), 1400px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 104px 0 16px;
+  color: #17191a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.playback-toolbar {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.playback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.playback-button,
+.playback-remove {
+  height: 32px;
+  border: 1px solid #777;
+  border-radius: 4px;
+  background: #1b1d1e;
+  color: #f0f2ef;
+  font: 10px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  cursor: pointer;
+}
+
+.playback-button {
+  min-width: 86px;
+  padding: 0 12px;
+}
+
+.playback-button:hover:not(:disabled),
+.playback-remove:hover {
+  background: #292d2f;
+}
+
+.playback-button:disabled {
+  border-color: #4b4d4e;
+  background: #17191a;
+  color: #626566;
+  cursor: default;
+}
+
+.playback-button:focus-visible,
+.playback-remove:focus-visible {
+  outline: 2px solid #f0f2ef;
+  outline-offset: 2px;
+}
+
+.playback-count {
+  flex: 0 0 auto;
+  color: #898c8d;
+  font-size: 11px;
+}
+
+.playback-message {
+  min-height: 24px;
+  margin: 8px 0;
+  color: #898c8d;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.playback-message.is-error {
+  color: #d26a5c;
+}
+
+.playback-empty {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  border-top: 1px solid #55595a;
+  border-bottom: 1px solid #55595a;
+  color: #777b7c;
+  font-size: 11px;
+}
+
+.playback-empty[hidden] {
+  display: none;
+}
+
+.playback-list {
+  display: grid;
+  gap: 8px;
+}
+
+.playback-session {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #f4f4f0;
+}
+
+.playback-session-header {
+  min-height: 42px;
+  padding: 5px 8px 5px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #d3d3cd;
+}
+
+.playback-session-name {
+  min-width: 0;
+  overflow: hidden;
+  color: #555856;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playback-remove {
+  width: 32px;
+  padding: 0;
+}
+
+.playback-pair {
+  min-height: 260px;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.36fr) minmax(0, 1fr);
+}
+
+.playback-camera,
+.playback-eeg {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 32px minmax(0, 1fr);
+}
+
+.playback-camera {
+  border-right: 1px solid #d3d3cd;
+  background: #1b1d1e;
+}
+
+.playback-label,
+.playback-eeg-header {
+  font-size: 9px;
+}
+
+.playback-label {
+  padding: 11px 14px 0;
+  color: #8a8c89;
+}
+
+.playback-camera video {
+  width: 100%;
+  height: 228px;
+  display: block;
+  object-fit: contain;
+  background: #111;
+  image-rendering: pixelated;
+}
+
+.playback-eeg-header {
+  padding-right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #707371;
+}
+
+.playback-eeg-header .playback-label {
+  padding-top: 0;
+}
+
+.playback-eeg canvas {
+  width: 100%;
+  height: 228px;
+  display: block;
+}
+
+@media (max-width: 760px) {
+  .playback-toolbar {
+    align-items: flex-start;
+  }
+
+  .playback-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .playback-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .playback-camera {
+    border-right: 0;
+    border-bottom: 1px solid #d3d3cd;
+  }
+}
+
 @media (max-width: 619px) {
   .app-tab {
     width: 68px;
@@ -408,5 +618,14 @@ body[data-view="record"] .panel-toggles {
 
   .record-message {
     line-height: 1.3;
+  }
+
+  .playback-view {
+    padding-top: 104px;
+  }
+
+  .playback-button {
+    min-width: 0;
+    width: 100%;
   }
 }
