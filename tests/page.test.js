@@ -37,9 +37,13 @@ assert(sketch.includes("TGAM Q ${Math.round(signalQuality)}/200"));
 assert.equal((html.match(/data-view-button=/g) || []).length, 3);
 for (const id of [
   "choose-folder",
+  "choose-stimulus",
+  "stimulus-file",
+  "stimulus-panel",
+  "imitation-video",
+  "record-countdown",
   "enable-camera",
-  "start-recording-30",
-  "start-recording-60",
+  "start-recording-15",
   "stop-recording",
   "camera-preview",
   "camera-capture",
@@ -50,8 +54,9 @@ assert(recorder.includes("TGAMSerialSource.onFrame(recordFrame)"));
 assert(recorder.includes("captureStream(VIDEO.framesPerSecond)"));
 assert(recorder.includes("videoBitsPerSecond: VIDEO.bitsPerSecond"));
 assert(recorder.includes("audio: false"));
-assert(recorder.includes("startRecording(30000)"));
-assert(recorder.includes("startRecording(60000)"));
+assert(recorder.includes("const RECORDING_DURATION_MS = 15000"));
+assert(recorder.includes("const COUNTDOWN_SECONDS = 3"));
+assert(recorder.includes("elements.stimulusVideo.play()"));
 assert(sketch.includes('cardsById.get("contact")'));
 assert(sketch.includes('cardsById.get("raw")'));
 assert(sketch.includes("const getRecordPanelBounds ="));
@@ -68,11 +73,16 @@ for (const id of [
   "clear-playback",
   "playback-files",
   "playback-list",
+  "playback-comparison",
+  "comparison-canvas",
 ]) {
   assert(html.includes(`id="${id}"`), `${id} is missing`);
 }
 assert(playback.includes("pairRecordingFiles(fileList)"));
 assert(playback.includes("video.currentTime * 1000"));
 assert(playback.includes("MAX_RECORDINGS"));
+assert.equal((html.match(/data-playback-mode=/g) || []).length, 3);
+assert(playback.includes("calculateBandSeries"));
+assert(playback.includes("drawBetween"));
 
 console.log("Standalone page structure tests passed");

@@ -163,6 +163,8 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
   payload length, checksum, complete lowercase hexadecimal frame, and decoded
   TGAM values
 - `transport_stats` is appended once per second with parser and raw-rate counters.
+- `transport_stats.stimulus_time_ms` records the selected reference video's
+  current playback position.
 - `recording_start` and `recording_stop` delimit the session.
 - Checksum-invalid frames are excluded from `tgam_frame` records; their count is
   retained in `transport_stats` and the manifest.
@@ -195,13 +197,23 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
   secure-context, missing-device, and busy-device failures are reported in the
   Record card.
 
-### Fixed recording duration
+### Imitation stimulus and fixed duration
 
-- The only start choices are 30,000 ms and 60,000 ms.
+- A local video at least 15 seconds long must be selected before Start is enabled.
+- File identity metadata includes name, byte size, last-modified time, source
+  duration, playback start, playback duration, and muted state.
+- File queues and MediaRecorder are prepared before the visible countdown.
+- A three-second `3`, `2`, `1` countdown does not collect TGAM or camera data.
+- At countdown completion, the reference video is reset to zero, TGAM frame
+  subscription starts, MediaRecorder starts, and muted video playback begins in
+  the same browser task.
+- The only planned duration is 15,000 ms.
 - `planned_duration_ms` is written to `recording_start` and
   `plannedDurationMs` is written to the session manifest.
-- A browser timer calls the same finalization path as manual Stop when the chosen
-  duration is reached, using `duration_complete` as the stop reason.
+- `countdown_ms` and the stimulus metadata are written to `recording_start`;
+  stimulus metadata is also written to the session manifest.
+- A browser timer calls the same finalization path as manual Stop after 15
+  seconds, using `duration_complete` as the stop reason.
 
 ### Session manifest
 
@@ -213,7 +225,7 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
 
 ### Stop behavior
 
-- Reaching 30 seconds or 1 minute finalizes every stream and writes the manifest.
+- Reaching 15 seconds finalizes every stream and writes the manifest.
 - Manual Stop can finalize a session before its planned duration.
 - Serial disconnect, camera end, video error, or file-write error initiates stop.
 - Closing or reloading the page while recording triggers a browser warning.
@@ -255,6 +267,24 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
 - Display clipping remains fixed at raw values `-2048` to `+2048`; clipping only
   affects drawing and does not modify loaded samples.
 - Native video seeking immediately changes the waveform window.
+
+### Playback EEG views
+
+- `Raw` retains the unfiltered four-second waveform described above.
+- `Bands` applies mean removal, a Hann window, a 1,024-point FFT, the nominal
+  TGAM raw-to-microvolt conversion, and one-sided PSD integration to each raw
+  recording.
+- Playback band windows are two seconds with a 128-sample hop, approximately
+  0.25 seconds. The five ranges are Delta 0.5-4 Hz, Theta 4-8 Hz, Alpha 8-13 Hz,
+  Beta 13-30 Hz, and Gamma 30-50 Hz.
+- Individual band bars use the same fixed `0.1-10,000 uV^2` logarithmic scale as
+  the live absolute-power card.
+- `Between` uses the first two loaded recordings. Each person's log band power
+  is independently mapped from that person's 10th to 90th percentile to `0-1`.
+- The mirrored bars show within-session intensity. The center bridge uses the
+  lower of the two values and fades when their normalized intensities differ.
+- This is an artistic response comparison to a shared stimulus. It is not PLV,
+  cross-person phase synchrony, or evidence of interpersonal neural coupling.
 
 ### Multi-session behavior
 

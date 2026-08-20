@@ -6,9 +6,12 @@ experiment, observe, and guess what each display responds to.
 
 This is an exploratory visualization, not a medical or diagnostic tool.
 
+The `demo/self-other-video` branch adds a separate imitation-video recording
+and two-viewer comparison prototype. It does not change the `main` branch.
+
 ## Hosted version
 
-The static browser app is published at:
+The `main` branch static browser app is published at:
 
 <https://fuse-lab-2026.github.io/interFace-interSignal/>
 
@@ -68,15 +71,18 @@ Chromium.
 
 1. Press **Connect TGAM** and select the serial port.
 2. Open `Record` or visit `http://localhost:3000/#record`.
-3. Press **Choose Folder** and grant write access.
-4. Press **Enable Camera** and grant camera access.
-5. Press **30 s** or **1 min**. The session stops and finalizes automatically;
-   **Stop** remains available for an early finish.
+3. Press **Choose Video** and select the shared imitation video. The first 15
+   seconds are used and the source must be at least 15 seconds long.
+4. Press **Choose Folder** and grant write access.
+5. Press **Enable Camera** and grant camera access.
+6. Press **Start 15 s**. A `3`, `2`, `1` countdown runs before the reference
+   video, TGAM capture, and webcam recording begin together.
 
-The Record view is a compact continuation of the signal grid. It carries over
-only Signal Contact and Raw EEG, then adds one camera card and one recording
-control card. The four cards form a centered 2 x 2 grid on larger screens and
-stack in the same order on narrow screens.
+The Record view carries over Signal Contact and Raw EEG, places the selected
+reference video in a full-width stage, and keeps the reaction camera and
+recording controls below it. The selected stimulus filename, source duration,
+15-second playback window, and countdown duration are written into the packet
+log and session manifest.
 
 Each session writes directly to the selected folder:
 
@@ -101,7 +107,14 @@ EEG TXT pair together. The filename before `-camera-*p.webm` and
 `-raw-eeg.txt` identifies the session.
 
 - Up to three sessions can be loaded at once.
-- Each session displays camera and raw EEG side by side.
+- Each session displays its reaction camera beside the selected EEG view.
+- **Raw** shows the existing four-second raw waveform.
+- **Bands** calculates five absolute-power bars from the recorded raw EEG using
+  the same Delta, Theta, Alpha, Beta, and Gamma definitions as the live page.
+- **Between** becomes available with two recordings. It mirrors each person's
+  five band responses around a center line after independently scaling each
+  band to that person's own 10th-90th percentile range. The red bridge becomes
+  stronger when both within-session responses are high and similar.
 - The raw waveform follows that session video's `currentTime`, including native
   video seeking.
 - Waveform x positions use `sample_index` and the TXT header sample rate
@@ -137,7 +150,9 @@ TGAM serial bytes
 
 Web camera -> preview -> 134 x 100 canvas -> MediaRecorder -> WebM file
 
-local camera WebM + raw EEG TXT -> browser playback -> synchronized video/waveform
+local camera WebM + raw EEG TXT
+  -> browser playback
+  -> synchronized raw, absolute bands, or two-recording comparison
 ```
 
 Node only serves static files on localhost. It does not access the serial port,

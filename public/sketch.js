@@ -36,6 +36,12 @@ const signalGuessingSketch = (p) => {
   };
 
   const getCanvasHeight = (width, viewportHeight, cardCount) => {
+    if (isRecordView()) {
+      const rows = width < 620 ? 5 : 3;
+      const minimumPanelHeight = width < 620 ? 220 : 300;
+      const minimumContentHeight = rows * minimumPanelHeight + (rows - 1) * PANEL_GAP;
+      return Math.max(viewportHeight, HEADER_HEIGHT + PAGE_PADDING + minimumContentHeight);
+    }
     if (cardCount === 0) return viewportHeight;
     const columns = Math.min(getColumnCount(width), cardCount);
     const rows = Math.ceil(cardCount / columns);
@@ -188,14 +194,15 @@ const signalGuessingSketch = (p) => {
 
   const getRecordPanelBounds = () => {
     const columns = p.width < 620 ? 1 : 2;
-    const rows = Math.ceil(4 / columns);
+    const slotCount = p.width < 620 ? 5 : 6;
+    const rows = Math.ceil(slotCount / columns);
     const contentWidth = Math.min(p.width - PAGE_PADDING * 2, RECORD_MAX_WIDTH);
     const contentX = (p.width - contentWidth) / 2;
     const contentHeight = p.height - HEADER_HEIGHT - PAGE_PADDING;
     const width = (contentWidth - PANEL_GAP * (columns - 1)) / columns;
     const height = (contentHeight - PANEL_GAP * (rows - 1)) / rows;
 
-    return Array.from({ length: 4 }, (_, index) => ({
+    return Array.from({ length: slotCount }, (_, index) => ({
       x: contentX + index % columns * (width + PANEL_GAP),
       y: HEADER_HEIGHT + Math.floor(index / columns) * (height + PANEL_GAP),
       width,
@@ -440,6 +447,8 @@ const signalGuessingSketch = (p) => {
       const recordSlots = [
         cardsById.get("contact"),
         cardsById.get("raw"),
+        null,
+        null,
         null,
         null,
       ];

@@ -2,10 +2,10 @@
 
 ## 문서 정보
 
-- 마지막 업데이트: 2026-08-20
-- 현재 단계: Signals/Record/Playback MVP 및 GitHub Pages 자동 배포 구성 완료, 실제 TGAM/카메라 통합 검증 전
+- 마지막 업데이트: 2026-08-21
+- 현재 단계: self/other imitation-video demo branch 구현 및 browser 검증 완료, 실제 TGAM 통합 검증 전
 - 저장소: `FUSE-Lab-2026/interFace-interSignal`
-- 기준 브랜치: `main`
+- 기준 브랜치: `demo/self-other-video` (`main`과 분리)
 - 문서 역할: 데이터 규격, MVP 범위, 구현 상태, 검증 상태를 관리하는 단일 기준 문서
 - 직전 규격: `backup/project-2026-08-18-v2.md`
 - 초기 문서: `backup/project-2026-08-11-legacy-tgam-eeg-webviz.md`
@@ -42,9 +42,10 @@ TGAM EEG를 처음 접하는 워크숍 참여자가 용어를 먼저 배우기�
 - 같은 페이지 안의 `Signals`, `Record`, `Playback` tab
 - 사용자 지정 폴더에 TGAM frame NDJSON과 raw EEG TXT streaming 저장
 - 134 x 100, 8 FPS, audio 없는 저용량 webcam WebM 저장
-- 30초 또는 1분 고정 길이 녹화와 자동 finalize
+- shared imitation video, 3-2-1 countdown, 15초 고정 녹화와 자동 finalize
 - session 설정과 parser 통계를 담은 JSON manifest 저장
 - 최대 3개 camera WebM/raw EEG TXT pair의 browser-only 비교 재생
+- playback Raw/Bands/Between EEG mode와 첫 2개 session의 self/other response 비교
 - `public/` 정적 파일을 GitHub Pages에 자동 배포
 
 ### MVP에서 제외
@@ -68,10 +69,12 @@ TGAM serial bytes
 
 Web camera -> preview -> 134 x 100 canvas -> MediaRecorder -> WebM writer
 
+Local imitation video -> 3-2-1 -> video playback + TGAM/camera 15초 동시 시작
+
 Local camera WebM + raw EEG TXT
   -> filename pair
-  -> video currentTime 기반 4초 raw window
-  -> 최대 3개 camera/EEG side-by-side row
+  -> Raw 또는 5-band absolute power
+  -> 첫 2개 recording의 within-session Between 비교
 ```
 
 Node는 `public/`을 `localhost`에 제공하는 정적 서버 역할만 한다. Node가 시리얼
@@ -85,6 +88,7 @@ Node는 `public/`을 `localhost`에 제공하는 정적 서버 역할만 한다.
 - trigger: `main`의 `public/**` 또는 workflow 변경 push, 수동 `workflow_dispatch`
 - runtime: 정적 HTML/CSS/JavaScript와 p5.js CDN; `server.js`는 배포하지 않음
 - browser API: GitHub Pages HTTPS origin에서 Web Serial, camera, File System Access API 사용
+- `demo/self-other-video` push는 현재 Pages trigger가 아니며 공개 URL은 `main` 버전이다.
 
 ## 데이터 규격
 
@@ -184,11 +188,16 @@ camera 없음, 다른 앱의 camera 점유를 구분해 Record card에 오류를
 
 ### 녹화 시간
 
-- 시작 옵션은 30초와 1분 두 가지다.
-- 선택한 시간은 NDJSON `recording_start.planned_duration_ms`와 manifest
-  `plannedDurationMs`에 기록한다.
-- 선택 시간이 끝나면 `duration_complete` 사유로 자동 finalize한다.
-- `Stop`으로 선택 시간 전에 수동 종료할 수 있다.
+- 최소 15초 local imitation video를 선택해야 Start가 활성화된다.
+- file writer와 MediaRecorder 준비 후 3-2-1 countdown을 표시한다.
+- countdown 동안 TGAM/camera data를 저장하지 않는다.
+- countdown 완료 시 imitation video time을 0으로 reset하고 TGAM subscription,
+  MediaRecorder, muted video playback을 같은 browser task에서 시작한다.
+- 고정 recording 시간은 15초이며 `planned_duration_ms=15000`을 NDJSON에,
+  `plannedDurationMs=15000`을 manifest에 기록한다.
+- stimulus filename, size, lastModified, source duration, playback duration과
+  `countdown_ms=3000`을 log에 기록한다.
+- 15초 후 `duration_complete` 사유로 자동 finalize하며 `Stop`으로 조기 종료할 수 있다.
 
 ## 카드 규격
 
@@ -301,18 +310,21 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - 상단 `Signals`, `Record`, `Playback` tab으로 view 전환
 - `#signals`, `#record`, `#playback` hash URL로 각 view 직접 접근
 - serial connect button은 Signals와 Record에서 같은 source를 제어하고 Playback에서는 숨긴다.
-- Record view는 Signals의 시각 언어를 이어받는 4-card grid다.
+- Record view는 Signals의 시각 언어를 이어받는 5-panel grid다.
 - 첫 행에는 Signal Contact와 Raw EEG만 이어서 표시한다.
-- 둘째 행에는 같은 card 크기의 camera 카드 03과 compact recorder 카드 04를 표시한다.
-- 620 px 이상에서는 최대 944 px 너비의 가운데 정렬 2 x 2 grid를 사용한다.
-- 619 px 이하에서는 Signal Contact, Raw EEG, camera, recorder 순서로 1열 배치한다.
+- 둘째 행에는 imitation video 카드 03을 full-width로 표시한다.
+- 셋째 행에는 camera 카드 04와 compact recorder 카드 05를 표시한다.
+- 620 px 이상에서는 최대 944 px 너비의 가운데 정렬 3-row grid를 사용한다.
+- 619 px 이하에서는 Signal Contact, Raw EEG, stimulus, camera, recorder 순서로 1열 배치한다.
 - Record view에서는 Movement, Eyes Closed, Band Power, Attention/Meditation을 표시하지 않는다.
-- recorder card는 folder, 30초/1분 시작, Stop, 남은 시간, frame/raw count를 표시한다.
+- recorder card는 folder, 15초 시작, Stop, 남은 시간, frame/raw count를 표시한다.
 - camera preview는 최대 190 px 너비로 제한하고 recorder status는 1행 4열로 표시해
   300 px 높이 card와 짧고 넓은 browser viewport에서도 내부 요소가 넘치지 않게 한다.
-- Playback은 session별 camera와 raw EEG를 한 row에서 좌우로 표시한다.
+- Playback은 session별 camera와 선택한 Raw/Bands EEG를 한 row에서 좌우로 표시한다.
 - Playback row는 최대 3개까지 세로로 쌓이며 narrow viewport에서는 camera와 EEG를 1열로 배치한다.
 - 공통 Play all, Pause, Restart, Clear와 session별 native video control/remove를 제공한다.
+- Between은 첫 2개 session을 각자 10-90 percentile로 정규화한 5-band mirrored bar와
+  shared-response bridge로 표시한다.
 
 ## Playback 데이터 규격
 
@@ -333,6 +345,12 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - 일반 window 위치: current time 이전 3,000 ms부터 이후 최대 1,000 ms
 - 표시 clipping: `-2048`에서 `+2048`; 원본 sample은 변경하지 않음
 - file 전송: 없음. `File.text()`와 local object URL만 사용
+- Bands: 1,024 samples, Hann, nominal uV conversion, one-sided PSD, 128 sample hop,
+  Delta/Theta/Alpha/Beta/Gamma absolute power
+- individual Bands scale: 고정 `0.1-10,000 uV^2` log axis
+- Between normalization: 사람별/band별 log power의 10th-90th percentile을 0-1로 mapping
+- Between 의미: 동일 stimulus에 대한 within-session response 비교이며 PLV 또는
+  interpersonal neural synchrony가 아님
 
 ## 파일별 책임
 
@@ -373,8 +391,9 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] TGAM frame NDJSON 및 raw EEG TXT streaming writer 구현
 - [x] 134 x 100, 8 FPS, 50 kbps 요청, audio 없는 WebM recorder 구현
 - [x] 일반적인 640 x 480 camera 입력 요청, preview frame 대기, permission 오류 표시
-- [x] 30초/1분 시작 옵션, 남은 시간 표시, 자동 stop/finalize 구현
-- [x] Record view를 Signal Contact, Raw EEG, camera, recorder의 compact 4-card 연속형 grid로 구성
+- [x] shared imitation video 선택, 3-2-1 countdown, 15초 video/EEG/camera 동시 시작 구현
+- [x] stimulus metadata와 playback time을 NDJSON/manifest에 기록
+- [x] Record view를 Signal Contact, Raw EEG, full-width stimulus, camera, recorder의 3-row grid로 구성
 - [x] 1,266 x 666 short-wide viewport에서 camera/control card overflow 수정
 - [x] session JSON manifest와 자동 stop/finalize 구현
 - [x] parser, mock serial, recorder lifecycle, page structure 자동 테스트 통과
@@ -390,6 +409,10 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] 실제 TXT 2개의 timestamp burst 확인: sample의 약 69-74%가 직전 sample과 같은
   rounded `elapsed_ms`를 사용하며 일반 burst 크기는 4-5 samples
 - [x] Playback x축을 512 Hz sample-index clock으로 복원하고 실제 pair render 확인
+- [x] Playback Raw/Bands/Between mode와 5-band offline PSD 구현
+- [x] 10.5 Hz 100 uV synthetic recording의 Alpha power 약 5,000 uV^2 자동 검증
+- [x] 실제 2026-08-20 pair 2개를 8초로 seek해 populated Between/Bands browser render 확인
+- [x] 1,440 x 1,200 Record demo branch browser render와 scroll/overflow 확인
 - [x] `public/` 전용 GitHub Pages Actions workflow 추가
 
 ### 실제 장비로 확인 필요
@@ -404,7 +427,8 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [ ] 실제 신호에서 raw EEG ±2,048 표시 범위가 워크숍에 적절한지 확인
 - [ ] Chrome에서 recording folder permission과 지속적인 file write 확인
 - [ ] 실제 webcam permission, 134 x 100 WebM 재생, file size 확인
-- [ ] 실제 TGAM과 webcam 동시 30초/1분 recording의 자동 종료와 timestamp/count 확인
+- [ ] 실제 TGAM과 webcam으로 countdown 후 15초 stimulus 동시 시작/자동 종료 확인
+- [ ] 같은 imitation file로 2명 recording 후 stimulus timing metadata 비교
 - [ ] serial 또는 camera 중단 시 세 파일과 manifest가 정상 finalize되는지 확인
 - [ ] Chrome native video seek 후 waveform 위치 변경을 수동 확인
 - [ ] 실제 3개 recording 동시 재생에서 video와 waveform rendering 성능 확인
@@ -420,9 +444,9 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 5. 카드 03은 최초 2초 후 약 0.25초마다 갱신되고 카드 04는 실제 TGAM packet을 따라 갱신된다.
 6. 모든 visibility checkbox가 대응 카드만 표시하거나 숨긴다.
 7. disconnect 후 stale live 값이 현재 값처럼 표시되지 않는다.
-8. Record tab에서 30초/1분 선택 후 네 출력 파일을 만들고 자동 종료 후 다시 열 수 있다.
-9. 1분 동시 녹화에서 browser memory가 지속적으로 증가하지 않는다.
-10. Playback에서 최대 3개 WebM/TXT pair를 열고 각 video seek에 raw EEG가 동기화된다.
+8. Record tab에서 video 선택과 3-2-1 후 15초 녹화로 네 출력 파일을 만들고 자동 종료한다.
+9. recording start와 imitation video start 차이가 workshop 허용 범위인지 실제 browser에서 확인한다.
+10. Playback에서 pair를 열고 Raw/Bands/Between이 video seek를 따라 갱신된다.
 11. `npm test`가 통과한다.
 
 ## 알려진 제약 및 위험
@@ -451,6 +475,10 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
   serial read에서 처리한 4-5 samples가 같은 millisecond 값을 가질 수 있다. Playback은
   header sample rate와 `sample_index`로 표시 시간을 복원한다.
 - 세 video의 공통 Play는 같은 사용자 동작에서 시작하지만 frame-level 장비 간 동기화는 보장하지 않는다.
+- Between은 각 recording 내부 percentile 정규화 결과다. 사람 간 absolute EEG power,
+  감정, 지각 내용 또는 neural coupling을 측정하지 않는다.
+- countdown 완료와 stimulus/MediaRecorder 시작은 같은 browser task에서 실행하지만
+  video decoder와 MediaRecorder의 첫 실제 frame 사이에는 작은 지연이 생길 수 있다.
 
 ## 실행 및 검증
 
@@ -461,7 +489,8 @@ npm test
 
 - 기본 URL: `http://localhost:3000`
 - 다른 port 예시: `PORT=8091 npm start`
-- GitHub Pages: `https://fuse-lab-2026.github.io/interFace-interSignal/`
+- GitHub Pages: `https://fuse-lab-2026.github.io/interFace-interSignal/` (`main` 버전)
+- demo branch: `demo/self-other-video`; local run으로 검증하며 `main`에 merge하지 않음
 - 현재 자동 테스트: parser packet/split/checksum/physical frame, mock Web Serial,
   recorder format, mock folder/camera/MediaRecorder session lifecycle, page structure
 

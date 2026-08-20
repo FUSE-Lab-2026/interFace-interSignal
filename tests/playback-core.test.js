@@ -56,4 +56,24 @@ assert.deepEqual(range, { startIndex: 1, endIndex: 3 });
 assert.equal(PlaybackCore.formatTime(65.8), "01:05");
 assert.equal(PlaybackCore.MAX_RECORDINGS, 3);
 
+const rawToMicrovolts = (1.8 / 4096) / 2000 * 1e6;
+const sineSamples = Array.from({ length: 2048 }, (_, sampleIndex) => ({
+  sampleIndex,
+  elapsedMs: sampleIndex * 1000 / 512,
+  timelineMs: sampleIndex * 1000 / 512,
+  unixMs: 1000 + sampleIndex * 1000 / 512,
+  raw: 100 * Math.sin(2 * Math.PI * 10.5 * sampleIndex / 512) / rawToMicrovolts,
+}));
+const bandSeries = PlaybackCore.calculateBandSeries(sineSamples, 512);
+assert.equal(bandSeries.length, 9);
+assert(Math.abs(bandSeries[0].powers.alpha - 5000) < 10);
+assert(bandSeries[0].powers.theta < 0.01);
+assert.equal(PlaybackCore.getBandPoint(bandSeries, 1000), null);
+assert.equal(PlaybackCore.getBandPoint(bandSeries, bandSeries[0].timeMs), bandSeries[0]);
+const normalizedBands = PlaybackCore.normalizeBandSeries(bandSeries);
+assert.equal(normalizedBands.length, bandSeries.length);
+assert(normalizedBands.every((point) => {
+  return point.normalized.alpha >= 0 && point.normalized.alpha <= 1;
+}));
+
 console.log("Playback core tests passed");

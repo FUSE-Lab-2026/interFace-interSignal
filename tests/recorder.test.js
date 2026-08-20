@@ -13,6 +13,10 @@ class FakeElement {
     this.hidden = false;
     this.srcObject = null;
     this.readyState = 2;
+    this.duration = Number.NaN;
+    this.currentTime = 0;
+    this.files = [];
+    this.value = "";
   }
 
   addEventListener(type, listener) {
@@ -26,6 +30,18 @@ class FakeElement {
   }
 
   async play() {}
+
+  pause() {}
+
+  click() {}
+
+  load() {}
+
+  removeAttribute(name) {
+    if (name === "src") this.src = "";
+  }
+
+  scrollIntoView() {}
 }
 
 const ids = [
@@ -33,9 +49,9 @@ const ids = [
   "camera-placeholder",
   "camera-capture",
   "choose-folder",
+  "choose-stimulus",
   "enable-camera",
-  "start-recording-30",
-  "start-recording-60",
+  "start-recording-15",
   "stop-recording",
   "record-state",
   "record-elapsed",
@@ -47,6 +63,12 @@ const ids = [
   "raw-file",
   "video-file",
   "manifest-file",
+  "record-countdown",
+  "stimulus-file",
+  "stimulus-meta",
+  "stimulus-panel",
+  "stimulus-placeholder",
+  "imitation-video",
 ];
 const elements = Object.fromEntries(ids.map((id) => [`#${id}`, new FakeElement()]));
 
@@ -57,6 +79,7 @@ elements["#camera-capture"].getContext = () => ({
   imageSmoothingQuality: "",
 });
 elements["#camera-capture"].captureStream = () => ({ getTracks: () => [captureTrack] });
+elements["#imitation-video"].duration = 15;
 
 const cameraTrack = {
   readyState: "live",
@@ -173,6 +196,10 @@ const context = vm.createContext({
   TGAMRecorderCore: RecorderCore,
   TGAMSerialSource: source,
   window: windowObject,
+  URL: {
+    createObjectURL: () => "blob:stimulus",
+    revokeObjectURL() {},
+  },
 });
 windowObject.window = windowObject;
 
@@ -195,11 +222,25 @@ const fileText = async (name) => {
   assert.equal(requestedCameraConstraints.audio, false);
   assert.equal(requestedCameraConstraints.video.width.ideal, 640);
   assert.equal(requestedCameraConstraints.video.height.ideal, 480);
-  await elements["#start-recording-30"].trigger("click");
+  elements["#stimulus-file"].files = [{
+    name: "gesture-score.mp4",
+    size: 12000,
+    lastModified: 123456,
+  }];
+  await elements["#stimulus-file"].trigger("change");
+  await elements["#start-recording-15"].trigger("click");
+  assert.equal(recorder.getState(), "countdown");
+  for (let index = 0; index < 3; index += 1) {
+    const timer = scheduledTimeouts.find((item) => item.delay === 1000 && !item.ran);
+    assert(timer);
+    timer.ran = true;
+    timer.callback();
+    await Promise.resolve();
+  }
   assert.equal(recorder.getState(), "recording");
   assert.equal(elements["#record-folder"].textContent, "TGAMRecordings");
   assert.equal(elements["#choose-folder"].textContent, "Folder Selected");
-  assert(scheduledTimeouts.some((timer) => timer.delay === 30000));
+  assert(scheduledTimeouts.some((timer) => timer.delay === 15000));
 
   clock = 1250;
   frameListener({
@@ -223,7 +264,9 @@ const fileText = async (name) => {
   assert(packetText.includes('"event":"tgam_frame"'));
   assert(packetText.includes('"frame_hex":"aaaa048002ff9c7c"'));
   assert(packetText.includes('"event":"recording_stop"'));
-  assert(packetText.includes('"planned_duration_ms":30000'));
+  assert(packetText.includes('"planned_duration_ms":15000'));
+  assert(packetText.includes('"name":"gesture-score.mp4"'));
+  assert(packetText.includes('"countdown_ms":3000'));
 
   const rawText = await fileText(rawName);
   assert(rawText.includes("sample_index\telapsed_ms\tunix_ms\traw"));
@@ -238,7 +281,9 @@ const fileText = async (name) => {
   assert.equal(manifest.video.target.width, 134);
   assert.equal(manifest.video.target.height, 100);
   assert.equal(manifest.video.target.audio, false);
-  assert.equal(manifest.plannedDurationMs, 30000);
+  assert.equal(manifest.plannedDurationMs, 15000);
+  assert.equal(manifest.stimulus.name, "gesture-score.mp4");
+  assert.equal(manifest.stimulus.playbackDurationMs, 15000);
   assert.equal(manifest.packetFormat.checksumValidFramesOnly, true);
   console.log("Session recorder tests passed");
 })().catch((error) => {

@@ -2,15 +2,17 @@ const TGAMSessionRecorder = (() => {
   const { CAMERA_REQUEST, SERIAL, VIDEO } = TGAMRecorderCore;
   const FLUSH_THRESHOLD = 65536;
   const CAMERA_START_TIMEOUT_MS = 8000;
+  const RECORDING_DURATION_MS = 15000;
+  const COUNTDOWN_SECONDS = 3;
 
   const elements = {
     cameraPreview: document.querySelector("#camera-preview"),
     cameraPlaceholder: document.querySelector("#camera-placeholder"),
     captureCanvas: document.querySelector("#camera-capture"),
     chooseFolder: document.querySelector("#choose-folder"),
+    chooseStimulus: document.querySelector("#choose-stimulus"),
     enableCamera: document.querySelector("#enable-camera"),
-    start30: document.querySelector("#start-recording-30"),
-    start60: document.querySelector("#start-recording-60"),
+    start15: document.querySelector("#start-recording-15"),
     stop: document.querySelector("#stop-recording"),
     state: document.querySelector("#record-state"),
     elapsed: document.querySelector("#record-elapsed"),
@@ -22,6 +24,12 @@ const TGAMSessionRecorder = (() => {
     rawFile: document.querySelector("#raw-file"),
     videoFile: document.querySelector("#video-file"),
     manifestFile: document.querySelector("#manifest-file"),
+    stimulusCountdown: document.querySelector("#record-countdown"),
+    stimulusFile: document.querySelector("#stimulus-file"),
+    stimulusMeta: document.querySelector("#stimulus-meta"),
+    stimulusPanel: document.querySelector("#stimulus-panel"),
+    stimulusPlaceholder: document.querySelector("#stimulus-placeholder"),
+    stimulusVideo: document.querySelector("#imitation-video"),
   };
 
   let directoryHandle = null;
@@ -35,12 +43,14 @@ const TGAMSessionRecorder = (() => {
   let flushTimer = null;
   let statsTimer = null;
   let autoStopTimer = null;
+  let countdownTimer = null;
   let state = "idle";
   let session = null;
   let queues = null;
   let packetBuffer = "";
   let rawBuffer = "";
   let stopPromise = null;
+  let stimulusSelection = null;
   let writeFailure = null;
 
   const createWriteQueue = (writable) => {
@@ -105,17 +115,25 @@ const TGAMSessionRecorder = (() => {
     return Boolean(cameraStream?.getVideoTracks().some((track) => track.readyState === "live"));
   };
 
+  const stimulusReady = () => {
+    return Boolean(
+      stimulusSelection &&
+      Number.isFinite(elements.stimulusVideo.duration) &&
+      elements.stimulusVideo.duration >= RECORDING_DURATION_MS / 1000
+    );
+  };
+
   const updateControls = () => {
-    const busy = state === "preparing" || state === "recording" || state === "stopping";
-    const ready = directoryHandle && cameraReady() && TGAMSerialSource.isConnected();
+    const busy = state === "preparing" || state === "countdown" || state === "recording" || state === "stopping";
+    const ready = directoryHandle && cameraReady() && stimulusReady() && TGAMSerialSource.isConnected();
     elements.chooseFolder.disabled = busy || !("showDirectoryPicker" in window);
+    elements.chooseStimulus.disabled = busy;
     elements.enableCamera.disabled = busy || cameraStarting || !navigator.mediaDevices?.getUserMedia;
     elements.enableCamera.textContent = cameraStarting
       ? "Starting Camera..."
       : cameraReady() ? "Disable Camera" : "Enable Camera";
     const startDisabled = busy || !ready || typeof MediaRecorder === "undefined";
-    elements.start30.disabled = startDisabled;
-    elements.start60.disabled = startDisabled;
+    elements.start15.disabled = startDisabled;
     elements.stop.disabled = state !== "recording";
   };
 
@@ -154,6 +172,64 @@ const TGAMSessionRecorder = (() => {
       setMessage("Recording folder selected.");
     } catch (error) {
       if (error.name !== "AbortError") setMessage(error.message || String(error), true);
+    }
+    updateControls();
+  };
+
+  const revokeStimulusUrl = () => {
+    if (
+      !stimulusSelection?.url ||
+      typeof URL === "undefined" ||
+      typeof URL.revokeObjectURL !== "function"
+    ) return;
+    URL.revokeObjectURL(stimulusSelection.url);
+  };
+
+  const resetStimulus = () => {
+    elements.stimulusVideo.pause();
+    revokeStimulusUrl();
+    stimulusSelection = null;
+    elements.stimulusVideo.removeAttribute("src");
+    elements.stimulusVideo.load();
+    elements.stimulusPlaceholder.hidden = false;
+    elements.stimulusMeta.textContent = "NO VIDEO";
+  };
+
+  const waitForStimulusMetadata = () => {
+    if (Number.isFinite(elements.stimulusVideo.duration)) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const handleLoaded = () => resolve();
+      const handleError = () => reject(new Error("The selected imitation video could not be loaded."));
+      elements.stimulusVideo.addEventListener("loadedmetadata", handleLoaded, { once: true });
+      elements.stimulusVideo.addEventListener("error", handleError, { once: true });
+    });
+  };
+
+  const selectStimulus = async (file) => {
+    if (!file) return;
+    resetStimulus();
+    try {
+      const url = URL.createObjectURL(file);
+      stimulusSelection = {
+        file,
+        url,
+        durationSeconds: null,
+      };
+      elements.stimulusVideo.src = url;
+      elements.stimulusVideo.load();
+      await waitForStimulusMetadata();
+      const durationSeconds = elements.stimulusVideo.duration;
+      if (!Number.isFinite(durationSeconds) || durationSeconds < RECORDING_DURATION_MS / 1000) {
+        throw new Error("Choose a video that is at least 15 seconds long.");
+      }
+      stimulusSelection.durationSeconds = durationSeconds;
+      elements.stimulusVideo.currentTime = 0;
+      elements.stimulusPlaceholder.hidden = true;
+      elements.stimulusMeta.textContent = `${file.name} | ${durationSeconds.toFixed(1)} s`;
+      setMessage("Imitation video ready.");
+    } catch (error) {
+      resetStimulus();
+      setMessage(error.message || String(error), true);
     }
     updateControls();
   };
@@ -364,8 +440,111 @@ const TGAMSessionRecorder = (() => {
     mediaStopPromise = null;
   };
 
-  const startRecording = async (plannedDurationMs) => {
-    if (state === "recording" || state === "stopping") return;
+  const stimulusMetadata = () => ({
+    name: stimulusSelection.file.name,
+    sizeBytes: stimulusSelection.file.size ?? null,
+    lastModifiedUnixMs: stimulusSelection.file.lastModified ?? null,
+    sourceDurationMs: Math.round(stimulusSelection.durationSeconds * 1000),
+    playbackStartMs: 0,
+    playbackDurationMs: RECORDING_DURATION_MS,
+    muted: true,
+  });
+
+  const failPreparedRecording = async (error) => {
+    if (countdownTimer) window.clearTimeout(countdownTimer);
+    countdownTimer = null;
+    elements.stimulusCountdown.hidden = true;
+    elements.stimulusVideo.pause();
+    if (frameUnsubscribe) frameUnsubscribe();
+    frameUnsubscribe = null;
+    if (mediaRecorder?.state === "recording") mediaRecorder.stop();
+    if (autoStopTimer) window.clearTimeout(autoStopTimer);
+    autoStopTimer = null;
+    cleanupCaptureStream();
+    await abortQueues();
+    session = null;
+    setState("error");
+    setMessage(error.message || String(error), true);
+  };
+
+  const beginSynchronizedCapture = async () => {
+    countdownTimer = null;
+    elements.stimulusCountdown.hidden = true;
+    try {
+      if (!cameraReady()) throw new Error("Camera stopped during the countdown");
+      if (!TGAMSerialSource.isConnected()) throw new Error("TGAM disconnected during the countdown");
+      if (!stimulusReady()) throw new Error("Imitation video became unavailable");
+
+      elements.stimulusVideo.currentTime = 0;
+      session.startedUnixMs = Date.now();
+      session.startedPerformanceMs = performance.now();
+      session.initialStats = TGAMSerialSource.getStats();
+      queueData("raw", TGAMRecorderCore.createRawHeader(session));
+      appendNdjson({
+        event: "recording_start",
+        format_version: 1,
+        session_id: session.sessionId,
+        serial_session_id: session.serialSessionId,
+        unix_ms: session.startedUnixMs,
+        elapsed_ms: 0,
+        files: session.files,
+        serial: SERIAL,
+        video: VIDEO,
+        stimulus: session.stimulus,
+        countdown_ms: COUNTDOWN_SECONDS * 1000,
+        planned_duration_ms: session.plannedDurationMs,
+      });
+      flushTextBuffers();
+      frameUnsubscribe = TGAMSerialSource.onFrame(recordFrame);
+      mediaRecorder.start(1000);
+      const playbackPromise = elements.stimulusVideo.play();
+      setState("recording");
+      setMessage("Recording 15-second imitation response.");
+      autoStopTimer = window.setTimeout(
+        () => stopRecording("duration_complete"),
+        session.plannedDurationMs
+      );
+      flushTimer = window.setInterval(flushTextBuffers, 1000);
+      statsTimer = window.setInterval(() => {
+        if (state !== "recording" || !session) return;
+        appendNdjson({
+          event: "transport_stats",
+          unix_ms: Date.now(),
+          elapsed_ms: Math.round(performance.now() - session.startedPerformanceMs),
+          stimulus_time_ms: Math.round(elements.stimulusVideo.currentTime * 1000),
+          ...TGAMSerialSource.getStats(),
+        });
+      }, 1000);
+      await playbackPromise;
+    } catch (error) {
+      await failPreparedRecording(error);
+    }
+  };
+
+  const startCountdown = () => {
+    let remaining = COUNTDOWN_SECONDS;
+    elements.stimulusPanel.scrollIntoView({ block: "center" });
+    elements.stimulusVideo.pause();
+    elements.stimulusVideo.currentTime = 0;
+    elements.stimulusCountdown.hidden = false;
+    elements.stimulusCountdown.textContent = String(remaining);
+    setState("countdown");
+    setMessage("Recording begins after the countdown.");
+
+    const advance = () => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        beginSynchronizedCapture();
+        return;
+      }
+      elements.stimulusCountdown.textContent = String(remaining);
+      countdownTimer = window.setTimeout(advance, 1000);
+    };
+    countdownTimer = window.setTimeout(advance, 1000);
+  };
+
+  const startRecording = async () => {
+    if (["preparing", "countdown", "recording", "stopping"].includes(state)) return;
     if (!TGAMSerialSource.isConnected()) {
       setMessage("Connect TGAM before recording.", true);
       return;
@@ -378,15 +557,14 @@ const TGAMSessionRecorder = (() => {
       setMessage("Enable the camera before recording.", true);
       return;
     }
+    if (!stimulusReady()) {
+      setMessage("Choose an imitation video that is at least 15 seconds long.", true);
+      return;
+    }
     if (typeof MediaRecorder === "undefined" || !elements.captureCanvas.captureStream) {
       setMessage("Video recording is unavailable in this browser.", true);
       return;
     }
-    if (plannedDurationMs !== 30000 && plannedDurationMs !== 60000) {
-      setMessage("Choose a 30 second or 1 minute recording.", true);
-      return;
-    }
-
     setState("preparing");
     setMessage("Preparing synchronized output files...");
     packetBuffer = "";
@@ -394,7 +572,7 @@ const TGAMSessionRecorder = (() => {
     writeFailure = null;
     elements.packets.textContent = "0";
     elements.raw.textContent = "0";
-    elements.elapsed.textContent = formatRemaining(plannedDurationMs);
+    elements.elapsed.textContent = formatRemaining(RECORDING_DURATION_MS);
 
     const startedAt = new Date();
     const baseName = TGAMRecorderCore.createBaseName(startedAt);
@@ -410,7 +588,8 @@ const TGAMSessionRecorder = (() => {
       videoBytes: 0,
       videoMimeType: "",
       actualVideoBitsPerSecond: 0,
-      plannedDurationMs,
+      plannedDurationMs: RECORDING_DURATION_MS,
+      stimulus: stimulusMetadata(),
       initialStats: null,
       cameraInput: cameraInputSettings(),
     };
@@ -429,53 +608,9 @@ const TGAMSessionRecorder = (() => {
       createMediaRecorder();
       if (!cameraReady()) throw new Error("Camera stopped while preparing files");
       if (!TGAMSerialSource.isConnected()) throw new Error("TGAM disconnected while preparing files");
-      session.startedUnixMs = Date.now();
-      session.startedPerformanceMs = performance.now();
-      session.initialStats = TGAMSerialSource.getStats();
-      queueData("raw", TGAMRecorderCore.createRawHeader(session));
-      appendNdjson({
-        event: "recording_start",
-        format_version: 1,
-        session_id: session.sessionId,
-        serial_session_id: session.serialSessionId,
-        unix_ms: session.startedUnixMs,
-        elapsed_ms: 0,
-        files,
-        serial: SERIAL,
-        video: VIDEO,
-        planned_duration_ms: plannedDurationMs,
-      });
-      flushTextBuffers();
-      frameUnsubscribe = TGAMSerialSource.onFrame(recordFrame);
-      mediaRecorder.start(1000);
-      setState("recording");
-      setMessage(`Recording TGAM frames, raw EEG, and 100p video for ${plannedDurationMs / 1000} seconds.`);
-      const stopDelayMs = Math.max(
-        0,
-        plannedDurationMs - (performance.now() - session.startedPerformanceMs)
-      );
-      autoStopTimer = window.setTimeout(() => stopRecording("duration_complete"), stopDelayMs);
-      flushTimer = window.setInterval(flushTextBuffers, 1000);
-      statsTimer = window.setInterval(() => {
-        if (state !== "recording" || !session) return;
-        appendNdjson({
-          event: "transport_stats",
-          unix_ms: Date.now(),
-          elapsed_ms: Math.round(performance.now() - session.startedPerformanceMs),
-          ...TGAMSerialSource.getStats(),
-        });
-      }, 1000);
+      startCountdown();
     } catch (error) {
-      if (frameUnsubscribe) frameUnsubscribe();
-      frameUnsubscribe = null;
-      if (mediaRecorder?.state === "recording") mediaRecorder.stop();
-      if (autoStopTimer) window.clearTimeout(autoStopTimer);
-      autoStopTimer = null;
-      cleanupCaptureStream();
-      await abortQueues();
-      session = null;
-      setState("error");
-      setMessage(error.message || String(error), true);
+      await failPreparedRecording(error);
     }
   };
 
@@ -507,6 +642,7 @@ const TGAMSessionRecorder = (() => {
     if (statsTimer) window.clearInterval(statsTimer);
     flushTimer = null;
     statsTimer = null;
+    elements.stimulusVideo.pause();
 
     const stoppedUnixMs = Date.now();
     const durationMs = Math.max(0, Math.round(performance.now() - session.startedPerformanceMs));
@@ -515,6 +651,7 @@ const TGAMSessionRecorder = (() => {
       reason,
       unix_ms: stoppedUnixMs,
       elapsed_ms: durationMs,
+      stimulus_time_ms: Math.round(elements.stimulusVideo.currentTime * 1000),
       frame_count: session.frameCount,
       raw_sample_count: session.rawSampleCount,
     });
@@ -552,6 +689,7 @@ const TGAMSessionRecorder = (() => {
       stopReason: reason,
       serialSessionId: session.serialSessionId,
       serial: SERIAL,
+      stimulus: session.stimulus,
       video: {
         target: VIDEO,
         input: session.cameraInput,
@@ -601,13 +739,17 @@ const TGAMSessionRecorder = (() => {
   };
 
   elements.chooseFolder.addEventListener("click", chooseFolder);
+  elements.chooseStimulus.addEventListener("click", () => elements.stimulusFile.click());
+  elements.stimulusFile.addEventListener("change", async () => {
+    await selectStimulus(elements.stimulusFile.files?.[0]);
+    elements.stimulusFile.value = "";
+  });
   elements.enableCamera.addEventListener("click", enableCamera);
-  elements.start30.addEventListener("click", () => startRecording(30000));
-  elements.start60.addEventListener("click", () => startRecording(60000));
+  elements.start15.addEventListener("click", startRecording);
   elements.stop.addEventListener("click", () => stopRecording("user"));
 
   window.addEventListener("beforeunload", (event) => {
-    if (state !== "recording" && state !== "stopping") return;
+    if (!["preparing", "countdown", "recording", "stopping"].includes(state)) return;
     event.preventDefault();
     event.returnValue = "";
   });

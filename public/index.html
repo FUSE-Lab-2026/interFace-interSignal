@@ -43,8 +43,22 @@
     </nav>
 
     <section id="recording-view" class="recording-view" hidden>
-      <div class="camera-panel">
+      <div id="stimulus-panel" class="stimulus-panel">
         <span class="record-card-number">03</span>
+        <div class="stimulus-frame">
+          <video id="imitation-video" muted playsinline preload="auto"></video>
+          <div id="stimulus-placeholder" class="stimulus-placeholder">SELECT VIDEO</div>
+          <output id="record-countdown" class="record-countdown" hidden></output>
+        </div>
+        <div class="stimulus-controls">
+          <button id="choose-stimulus" class="tool-button" type="button">Choose Video</button>
+          <output id="stimulus-meta">NO VIDEO</output>
+          <input id="stimulus-file" type="file" accept="video/*" hidden />
+        </div>
+      </div>
+
+      <div class="camera-panel">
+        <span class="record-card-number">04</span>
         <div class="camera-frame">
           <video id="camera-preview" autoplay muted playsinline></video>
           <div id="camera-placeholder" class="camera-placeholder">CAMERA OFF</div>
@@ -60,14 +74,11 @@
       </div>
 
       <div class="record-controls">
-        <span class="record-card-number">04</span>
+        <span class="record-card-number">05</span>
         <div class="record-actions">
           <button id="choose-folder" class="tool-button" type="button">Choose Folder</button>
-          <button id="start-recording-30" class="tool-button record-button" type="button" disabled>
-            <span class="record-dot" aria-hidden="true"></span>Start 30 s
-          </button>
-          <button id="start-recording-60" class="tool-button record-button" type="button" disabled>
-            <span class="record-dot" aria-hidden="true"></span>Start 1 min
+          <button id="start-recording-15" class="tool-button record-button" type="button" disabled>
+            <span class="record-dot" aria-hidden="true"></span>Start 15 s
           </button>
           <button id="stop-recording" class="tool-button" type="button" disabled>Stop</button>
         </div>
@@ -83,7 +94,7 @@
           <span>DESTINATION</span>
           <output id="record-folder">NOT SELECTED</output>
         </div>
-        <p id="record-message" class="record-message" role="status" aria-live="polite">Connect TGAM, choose a folder, and enable the camera.</p>
+        <p id="record-message" class="record-message" role="status" aria-live="polite">Connect TGAM, choose a video and folder, and enable the camera.</p>
       </div>
 
       <div class="record-files">
@@ -103,11 +114,24 @@
           <button id="restart-playback" class="playback-button" type="button" disabled>Restart</button>
           <button id="clear-playback" class="playback-button" type="button" disabled>Clear</button>
         </div>
+        <div class="playback-modes" role="group" aria-label="EEG visualization">
+          <button class="playback-mode" type="button" data-playback-mode="raw" aria-pressed="false">Raw</button>
+          <button class="playback-mode is-active" type="button" data-playback-mode="bands" aria-pressed="true">Bands</button>
+          <button class="playback-mode" type="button" data-playback-mode="between" aria-pressed="false" disabled>Between</button>
+        </div>
         <output id="playback-count" class="playback-count">0 / 3</output>
         <input id="playback-files" type="file" accept=".txt,.webm,video/webm" multiple hidden />
       </header>
       <p id="playback-message" class="playback-message" role="status" aria-live="polite">No recordings loaded.</p>
       <div id="playback-empty" class="playback-empty">NO RECORDINGS</div>
+      <section id="playback-comparison" class="playback-comparison" hidden>
+        <header class="playback-comparison-header">
+          <output id="comparison-left">A</output>
+          <span>BETWEEN</span>
+          <output id="comparison-right">B</output>
+        </header>
+        <canvas id="comparison-canvas" aria-label="Normalized five-band comparison for the first two recordings"></canvas>
+      </section>
       <div id="playback-list" class="playback-list"></div>
     </section>
   </main>
