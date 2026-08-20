@@ -123,9 +123,9 @@ Node는 `public/`을 `localhost`에 제공하는 정적 서버 역할만 한다.
 | `0x04` | Attention | 0-100 | 카드 04 |
 | `0x05` | Meditation | 0-100 | 카드 04 |
 | `0x16` | Blink Strength | 0-255 | parser에서 보존, 현재 카드 미사용 |
-| `0x80` | Raw Wave | signed 16-bit | 카드 02 표시, 카드 05-06 계산 |
+| `0x80` | Raw Wave | signed 16-bit | 카드 02 표시, 카드 03 및 05-06 계산 |
 | `0x81` | Legacy EEG Power | 8 x big-endian float | parser 지원 |
-| `0x83` | ASIC EEG Power | 8 x unsigned 24-bit | 카드 03 |
+| `0x83` | ASIC EEG Power | 8 x unsigned 24-bit | parser/recording에서 보존, 현재 카드 미사용 |
 
 ASIC band 순서는 `delta`, `theta`, `lowAlpha`, `highAlpha`, `lowBeta`,
 `highBeta`, `lowGamma`, `midGamma`다.
@@ -199,7 +199,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - 출력: 0-100 연속값
 - 전처리: 없음
 - 시각화: 아래에서 위로 채워지는 세로 막대, 값이 클수록 진한 opacity
-- 정책: `q != 0`이면 카드 05와 06의 값을 `--`로 숨김
+- 정책: `q != 0`이면 카드 03, 05, 06의 값을 `--`로 숨김
 
 ### 02 Raw EEG
 
@@ -211,15 +211,34 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - 범위 밖 값은 화면에서만 clip하며 저장된 raw 값은 변경하지 않음
 - 시각화: 고정 grid 위의 선형 waveform과 최신 raw 정수
 
-### 03 TGAM Band Power
+### 03 Absolute Band Power
 
-- 입력: 최신 ASIC EEG Power 패킷의 8개 band
-- 표시 변환: `L[i] = log10(1 + Power[i])`
-- 높이: `L[i] / max(L[0] ... L[7])`
-- smoothing: 없음
+- 입력: 최신 raw EEG 1,024 samples, 512 Hz에서 약 2초
+- raw 전압 변환:
+  `x_uV[n] = raw[n] * ((1.8 / 4096) / 2000) * 1,000,000`
+- nominal 변환 계수: raw count당 약 `0.2197265625 uV`
+- 전처리: 평균 제거, Hann window, 1,024-point FFT
+- 주파수 해상도: 0.5 Hz
+- hop: 128 samples, 약 0.25초
+- one-sided PSD:
+  `PSD[k] = 2 * |FFT((x_uV - mean) * Hann)[k]|^2 / (Fs * sum(Hann^2))`
+  단위는 `uV^2/Hz`; DC 제외, Nyquist bin은 2배하지 않음
+- band power: 해당 범위 bin의 `PSD[k] * 0.5 Hz` 합, 단위 `uV^2`
+- band 범위: Delta 0.5-2.75 Hz, Theta 3.5-6.75 Hz,
+  Low Alpha 7.5-9.25 Hz, High Alpha 10-11.75 Hz,
+  Low Beta 13-16.75 Hz, High Beta 18-29.75 Hz,
+  Low Gamma 31-39.75 Hz, Mid Gamma 41-49.75 Hz
 - 시각화: `D`, `T`, `LA`, `HA`, `LB`, `HB`, `LG`, `MG` 8개 막대
-- 해석 제한: 각 패킷 내부의 상대 모양을 보여주므로 서로 다른 시점의 같은
-  높이가 같은 절대 power를 의미하지 않음
+- 고정 log 표시 범위: `0.1-10,000 uV^2`
+- 높이: `clamp((log10(Power) - log10(0.1)) / 5, 0, 1)`
+- strongest band 또는 total power 기준 정규화 없음; 같은 높이는 시점이 달라도
+  같은 계산 power를 의미함
+- smoothing, software notch, 별도 band-pass 없음
+- TGAM Poor Signal `q == 0`이고 1,024 samples가 쌓였을 때만 표시
+- 해석 제한: NeuroSky nominal 2,000x gain 기반 추정값이며 실제 hardware gain은
+  약 +/-5% 다를 수 있어 임상용 calibrated measurement가 아님
+- 전압 변환 근거:
+  <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to-voltage>
 
 ### 04 TGAM Attention / Meditation
 
@@ -257,16 +276,17 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 ## 필터링 정책
 
 - raw EEG 전체에 적용하는 global filter는 없음
+- 카드 03은 평균 제거와 Hann window 후 0.5-49.75 Hz band PSD만 적분
 - 카드 05는 4-45 Hz만 공식에 사용
 - 카드 06은 4-30 Hz만 공식에 사용
-- 60 Hz 전기 간섭은 카드 05와 06의 계산 범위 밖에 있음
+- 60 Hz 전기 간섭은 카드 03, 05, 06의 계산 범위 밖에 있음
 - 현재 60 Hz notch filter는 적용하지 않음
 
 ## UI 규격
 
 - 카드 제목과 설명은 워크숍 화면에서 숨김
 - 번호 `01`-`06`으로 카드와 checkbox를 대응
-- 고정 순서: Signal Contact, Raw EEG, TGAM Band Power, TGAM
+- 고정 순서: Signal Contact, Raw EEG, Absolute Band Power, TGAM
   Attention/Meditation, Movement, Eyes Closed
 - 첫 load에서는 카드 01만 checked 및 표시
 - checkbox가 checked일 때만 해당 카드 표시
@@ -321,7 +341,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 | `public/index.html` | Signals/Record/Playback tab과 각 view DOM |
 | `public/serial-source.js` | Web Serial 연결/해제, packet/frame dispatch |
 | `public/tgam-parser.js` | ThinkGear framing, checksum, payload 및 physical frame 출력 |
-| `public/derived-signals.js` | 카드 01, 05, 06 계산과 FFT |
+| `public/derived-signals.js` | 카드 01, 03, 05, 06 계산과 FFT/PSD |
 | `public/sketch.js` | live data buffer, 반응형 layout, 카드 01-06 p5 rendering |
 | `public/tabs.js` | hash 기반 in-app view 전환 |
 | `public/recorder-core.js` | 녹화 상수, file name, frame/raw serialization |
@@ -340,9 +360,9 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] standalone 저장소 분리 및 GitHub `main` 배포
 - [x] direct Web Serial source 구현
 - [x] 공유 ThinkGear parser와 checksum diagnostics 구현
-- [x] 카드 01, 05, 06 파생 신호 구현
+- [x] 카드 01, 03, 05, 06 파생 신호 구현
 - [x] 카드 02 raw waveform 구현
-- [x] 카드 03 native band-power graph 구현
+- [x] raw EEG에서 계산한 카드 03 absolute band-power graph 구현
 - [x] 카드 04 native Attention/Meditation 구현
 - [x] 6개 카드 개별 표시/숨김 및 반응형 grid 구현
 - [x] 카드 순서를 Contact, Raw, Bands, A/M, Movement, Eyes Closed로 변경하고 첫 load에서 카드 01만 표시
@@ -358,6 +378,8 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] 1,266 x 666 short-wide viewport에서 camera/control card overflow 수정
 - [x] session JSON manifest와 자동 stop/finalize 구현
 - [x] parser, mock serial, recorder lifecycle, page structure 자동 테스트 통과
+- [x] 100 uV peak 10.5 Hz synthetic sine의 High Alpha power가 약 5,000 uV^2인지 자동 검증
+- [x] 실제 2026-08-20 raw EEG TXT 2개에서 absolute band-power 범위 검증
 - [x] 1,440 x 900 desktop 및 500 px narrow browser render 확인
 - [x] 1,440 x 900 및 500 x 900 Record tab browser render 확인
 - [x] Playback hash/tab, file pair parser, raw TXT parser, 4초 window 구현
@@ -375,9 +397,9 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [ ] 워크숍 MacBook의 Chrome port chooser에 TGAM 포트가 표시되는지 확인
 - [ ] 실시간 raw rate가 약 512 samples/second인지 확인
 - [ ] 안정된 연결에서 checksum failure가 계속 증가하지 않는지 확인
-- [ ] 실제 장비가 `0x83` ASIC band packet을 보내 카드 03이 갱신되는지 확인
+- [ ] 실제 raw stream에서 카드 03이 최초 2초 후 약 0.25초마다 갱신되는지 확인
 - [ ] 실제 장비가 Attention/Meditation packet을 보내 카드 04가 갱신되는지 확인
-- [ ] 접촉 불량과 재접촉 시 카드 01, 05, 06 상태가 올바르게 바뀌는지 확인
+- [ ] 접촉 불량과 재접촉 시 카드 01, 03, 05, 06 상태가 올바르게 바뀌는지 확인
 - [ ] Bluetooth loss, 수동 disconnect/reconnect, sleep/wake 후 복구 확인
 - [ ] 실제 신호에서 raw EEG ±2,048 표시 범위가 워크숍에 적절한지 확인
 - [ ] Chrome에서 recording folder permission과 지속적인 file write 확인
@@ -395,7 +417,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 2. 5분 연속 실행에서 raw sample rate가 기대 범위에 있고 패킷 처리가 중단되지 않는다.
 3. 정상 접촉에서 카드 05와 06이 2초 이내에 값을 표시한다.
 4. 카드 02 waveform이 끊기지 않고 갱신된다.
-5. 카드 03과 04가 실제 TGAM packet 주기에 따라 갱신된다.
+5. 카드 03은 최초 2초 후 약 0.25초마다 갱신되고 카드 04는 실제 TGAM packet을 따라 갱신된다.
 6. 모든 visibility checkbox가 대응 카드만 표시하거나 숨긴다.
 7. disconnect 후 stale live 값이 현재 값처럼 표시되지 않는다.
 8. Record tab에서 30초/1분 선택 후 네 출력 파일을 만들고 자동 종료 후 다시 열 수 있다.
@@ -409,7 +431,10 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - p5.js를 CDN에서 불러오므로 최초 실행 시 인터넷 연결이 필요하다.
 - 다른 앱이 TGAM serial port를 점유하면 브라우저가 열 수 없다.
 - 카드 05와 06은 워크숍용 상대 지표이며 개인별 calibration이 없다.
-- 카드 03은 패킷별 정규화이므로 시간 간 절대 power 비교에 적합하지 않다.
+- 카드 03의 raw-to-voltage 변환은 TGAM nominal 2,000x gain을 사용한다. 실제 gain은
+  약 +/-5% 다를 수 있으므로 값은 임상용 교정 측정치가 아니다.
+- 카드 03의 고정 display 상한 10,000 uV^2를 넘는 movement/artifact power는 화면에서
+  clip되지만 계산값은 그대로 유지된다.
 - TGAM eSense 값은 vendor algorithm 출력이며 현재 앱이 계산한 EEG 지표가 아니다.
 - 실제 장비 없는 mock test는 browser lifecycle과 parsing을 검증하지만 Bluetooth 및
   하드웨어 timing을 검증하지 못한다.

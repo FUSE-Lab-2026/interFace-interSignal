@@ -7,6 +7,8 @@ const signalGuessingSketch = (p) => {
   const RAW_HISTORY_SIZE = 1024;
   const RAW_DISPLAY_SIZE = 512;
   const RAW_DISPLAY_LIMIT = 2048;
+  const BAND_POWER_MIN = 0.1;
+  const BAND_POWER_MAX = 10000;
   const BAND_KEYS = [
     "delta",
     "theta",
@@ -22,7 +24,6 @@ const signalGuessingSketch = (p) => {
   let connectButton = null;
   let visibleCardIds = new Set(["contact"]);
   let rawHistory = [];
-  let latestBands = null;
   let attention = null;
   let meditation = null;
   let signalQuality = null;
@@ -58,7 +59,6 @@ const signalGuessingSketch = (p) => {
 
   const resetLiveData = () => {
     rawHistory = [];
-    latestBands = null;
     attention = null;
     meditation = null;
     signalQuality = null;
@@ -104,7 +104,6 @@ const signalGuessingSketch = (p) => {
           rawHistory.splice(0, rawHistory.length - RAW_HISTORY_SIZE);
         }
       }
-      if (packet.bands) latestBands = { ...packet.bands };
       if (packet.attention !== undefined) attention = packet.attention;
       if (packet.meditation !== undefined) meditation = packet.meditation;
     });
@@ -327,26 +326,53 @@ const signalGuessingSketch = (p) => {
     p.endShape();
   };
 
-  const drawBands = (visualBounds, connected) => {
-    const available = connected && latestBands !== null;
-    const values = BAND_KEYS.map((key) => available ? Math.max(0, Number(latestBands[key]) || 0) : 0);
-    const logValues = values.map((value) => Math.log10(1 + value));
-    const maximum = Math.max(1e-12, ...logValues);
-    const normalized = logValues.map((value) => value / maximum);
+  const drawBands = (bandPowers, visualBounds, connected) => {
+    const available = connected && bandPowers !== null;
+    const values = BAND_KEYS.map((key) => available ? Math.max(0, Number(bandPowers[key]) || 0) : 0);
+    const logMinimum = Math.log10(BAND_POWER_MIN);
+    const logRange = Math.log10(BAND_POWER_MAX) - logMinimum;
+    const normalized = values.map((value) => {
+      if (value <= BAND_POWER_MIN) return 0;
+      return clamp((Math.log10(value) - logMinimum) / logRange, 0, 1);
+    });
+    const axisWidth = 30;
+    const unitHeight = 18;
     const labelHeight = 22;
-    const trackHeight = visualBounds.height - labelHeight;
-    const gap = Math.max(4, Math.min(10, visualBounds.width * 0.018));
-    const barWidth = Math.max(8, (visualBounds.width - gap * 7) / 8);
+    const trackX = visualBounds.x + axisWidth;
+    const trackY = visualBounds.y + unitHeight;
+    const trackWidth = visualBounds.width - axisWidth;
+    const trackHeight = visualBounds.height - unitHeight - labelHeight;
+    const gap = Math.max(4, Math.min(10, trackWidth * 0.018));
+    const barWidth = Math.max(8, (trackWidth - gap * 7) / 8);
+
+    p.fill(112);
+    p.noStroke();
+    p.textAlign(p.LEFT, p.TOP);
+    p.textSize(9);
+    p.text("uV^2", visualBounds.x, visualBounds.y);
+
+    for (const guide of [0.1, 1, 10, 100, 1000, 10000]) {
+      const guideNormalized = (Math.log10(guide) - logMinimum) / logRange;
+      const y = trackY + trackHeight * (1 - guideNormalized);
+      p.stroke(18, 18, 18, 32);
+      p.strokeWeight(1);
+      p.line(trackX, y, trackX + trackWidth, y);
+      p.noStroke();
+      p.fill(128);
+      p.textAlign(p.RIGHT, p.CENTER);
+      p.textSize(8);
+      p.text(guide >= 1000 ? `${guide / 1000}k` : String(guide), trackX - 4, y);
+    }
 
     BAND_LABELS.forEach((label, index) => {
-      const x = visualBounds.x + index * (barWidth + gap);
+      const x = trackX + index * (barWidth + gap);
       p.noStroke();
       p.fill(224, 224, 218);
-      p.rect(x, visualBounds.y, barWidth, trackHeight, 1);
+      p.rect(x, trackY, barWidth, trackHeight, 1);
       if (available && normalized[index] > 0) {
         const fillHeight = trackHeight * normalized[index];
         p.fill(18, 18, 18, 28 + normalized[index] * 227);
-        p.rect(x, visualBounds.y + trackHeight - fillHeight, barWidth, fillHeight, 1);
+        p.rect(x, trackY + trackHeight - fillHeight, barWidth, fillHeight, 1);
       }
       p.fill(112);
       p.textAlign(p.CENTER, p.BOTTOM);
@@ -399,7 +425,7 @@ const signalGuessingSketch = (p) => {
     return [
       { id: "contact", number: "01", draw: (visual, panel) => drawContact(snapshot.contact, visual, panel) },
       { id: "raw", number: "02", draw: (visual, panel) => drawRaw(visual, panel, connected) },
-      { id: "bands", number: "03", draw: (visual) => drawBands(visual, connected) },
+      { id: "bands", number: "03", draw: (visual) => drawBands(snapshot.bandPowers, visual, connected) },
       { id: "esense", number: "04", draw: (visual) => drawESense(visual, connected) },
       { id: "movement", number: "05", draw: (visual, panel) => drawMovement(snapshot.highFrequencyActivity, visual, panel) },
       { id: "eyes", number: "06", draw: (visual, panel) => drawEyes(snapshot.alphaRatio, visual, panel) },

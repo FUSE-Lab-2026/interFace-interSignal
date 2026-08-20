@@ -48,16 +48,17 @@ activity. Their fixed order is:
 
 1. Signal Contact
 2. Raw EEG
-3. TGAM band power
+3. Absolute band power
 4. TGAM Attention and Meditation
 5. Movement
 6. Eyes Closed
 
 Only Signal Contact is selected and shown on first load. Signal Contact,
-Movement, and Eyes Closed are continuous workshop scores from 0 to 100; Movement
-and Eyes Closed remain unavailable while TGAM reports poor electrode contact.
-The other cards display the raw stream and native TGAM packet values rather than
-new inferred scores.
+Movement, and Eyes Closed are continuous workshop scores from 0 to 100. Movement,
+Eyes Closed, and Absolute Band Power remain unavailable while TGAM reports poor
+electrode contact. Raw EEG displays the incoming stream, Absolute Band Power is
+calculated from that stream in `uV^2`, and Attention/Meditation displays native
+TGAM values.
 
 ## Record tab
 

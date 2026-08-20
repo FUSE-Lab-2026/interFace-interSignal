@@ -23,7 +23,7 @@ mappings change.
 - Native range: 0 is good contact; 200 means no contact
 - Formula: `Contact = 100 * (1 - clamp(q, 0, 200) / 200)`
 - No smoothing or calibration is applied.
-- The two frequency-derived scores are hidden whenever `q` is nonzero.
+- All three frequency-derived outputs are hidden whenever `q` is nonzero.
 - Visual: a vertical fill whose height is `Contact / 100`; opacity also increases
   with the score.
 - Header: the native value is also shown without conversion as `TGAM Q q/200`.
@@ -89,21 +89,35 @@ eye-state classifier and does not directly measure eye movement.
   raw values are not modified.
 - The latest raw integer is shown in the card corner.
 
-## TGAM band power
+## Absolute band power
 
-- Source: the eight native ASIC EEG power values in TGAM code `0x83` packets
-- Order: delta, theta, low alpha, high alpha, low beta, high beta, low gamma,
-  mid gamma
+- Source: the latest 1,024 raw TGAM samples, representing 2 seconds at 512 Hz
+- Raw conversion:
+  `x_uV[n] = raw[n] * ((1.8 / 4096) / 2000) * 1,000,000`
+- Conversion factor: approximately `0.2197265625 uV` per raw count
+- Preprocessing: mean removal and a 1,024-point Hann window
+- FFT size: 1,024; frequency-bin width: 0.5 Hz
+- Update hop: 128 samples, approximately 0.25 seconds
+- One-sided periodogram:
+  `PSD[k] = 2 * |FFT((x_uV - mean) * Hann)[k]|^2 / (Fs * sum(Hann^2))`
+  in `uV^2/Hz`; DC is excluded and the Nyquist bin is not doubled.
+- Band power: `Power_band = sum(PSD[k] * 0.5 Hz)` for bins inside the band
+- Bands: delta 0.5-2.75 Hz, theta 3.5-6.75 Hz, low alpha 7.5-9.25 Hz,
+  high alpha 10-11.75 Hz, low beta 13-16.75 Hz, high beta 18-29.75 Hz,
+  low gamma 31-39.75 Hz, mid gamma 41-49.75 Hz
 - Labels: `D`, `T`, `LA`, `HA`, `LB`, `HB`, `LG`, `MG`
-- Each packet value is transformed for display with `L[i] = log10(1 + Power[i])`.
-- Bar height is normalized within the latest packet:
-  `Height[i] = L[i] / max(L[0] ... L[7])`.
-- Bar opacity uses the same normalized value.
-- No smoothing or calibration is applied.
+- Display axis: fixed logarithmic range from `0.1` to `10,000 uV^2`
+- Bar height:
+  `clamp((log10(Power_band) - log10(0.1)) / 5, 0, 1)`
+- Values are not normalized against the strongest band or total power. The same
+  bar height therefore represents the same calculated power at different times.
+- No temporal smoothing, software notch filter, or band-pass filter is applied.
+- Card output is hidden unless TGAM Poor Signal is exactly `0`.
 
-The graph emphasizes the relative shape across bands in one TGAM update. Bar
-height is not an absolute scale, so the same height can represent different raw
-power values in different packets.
+The voltage conversion follows NeuroSky's TGAT/TGAM nominal 2,000x gain. The
+manufacturer notes that actual hardware gain can vary by approximately +/-5%,
+so these are nominal estimates rather than clinical measurements. Conversion
+reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to-voltage>.
 
 ## TGAM Attention and Meditation
 
@@ -120,7 +134,7 @@ power values in different packets.
 - Panel names and formula descriptions are intentionally hidden.
 - Cards are identified only as `01` through `06`. Numbered checkboxes independently
   show or hide each card without revealing its title.
-- Fixed order: Signal Contact, Raw EEG, TGAM band power, TGAM
+- Fixed order: Signal Contact, Raw EEG, absolute band power, TGAM
   Attention/Meditation, Movement, Eyes Closed.
 - On first load, only card `01` Signal Contact is checked and visible.
 - Visible cards reflow to three columns on wide screens, two columns on medium

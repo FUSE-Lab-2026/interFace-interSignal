@@ -10,6 +10,17 @@ const DerivedSignals = (() => {
   const HIGH_FREQUENCY_FFT_SIZE = 512;
   const FEATURE_HOP = 128;
   const MAX_SCORE_HISTORY = 600;
+  const RAW_TO_MICROVOLTS = (1.8 / 4096) / 2000 * 1e6;
+  const BAND_DEFINITIONS = [
+    ["delta", 0.5, 2.75],
+    ["theta", 3.5, 6.75],
+    ["lowAlpha", 7.5, 9.25],
+    ["highAlpha", 10, 11.75],
+    ["lowBeta", 13, 16.75],
+    ["highBeta", 18, 29.75],
+    ["lowGamma", 31, 39.75],
+    ["midGamma", 41, 49.75],
+  ];
 
   let rawBuffer = new Float32Array(ALPHA_FFT_SIZE);
   let rawCount = 0;
@@ -20,12 +31,14 @@ const DerivedSignals = (() => {
     contact: 0,
     highFrequencyActivity: null,
     alphaRatio: null,
+    bandPowers: null,
     ready: false,
     lineNoiseDb: null,
     reliable: false,
   };
 
   const hannCache = new Map();
+  const hannEnergyCache = new Map();
 
   const clamp = (value, minimum = 0, maximum = 100) => {
     return Math.max(minimum, Math.min(maximum, value));
@@ -41,6 +54,15 @@ const DerivedSignals = (() => {
       );
     }
     return hannCache.get(size);
+  };
+
+  const hannEnergy = (size) => {
+    if (!hannEnergyCache.has(size)) {
+      let energy = 0;
+      for (const value of hannWindow(size)) energy += value * value;
+      hannEnergyCache.set(size, energy);
+    }
+    return hannEnergyCache.get(size);
   };
 
   const readLatest = (size) => {
@@ -126,6 +148,28 @@ const DerivedSignals = (() => {
     return count ? sum / count : 0;
   };
 
+  const absoluteBandPower = (power, fftSize, lowHz, highHz) => {
+    const binWidthHz = SAMPLE_RATE / fftSize;
+    const psdScale = RAW_TO_MICROVOLTS ** 2 / (SAMPLE_RATE * hannEnergy(fftSize));
+    let sumMicrovoltsSquared = 0;
+    for (let bin = 1; bin < power.length; bin += 1) {
+      const frequency = bin * binWidthHz;
+      if (frequency < lowHz || frequency >= highHz) continue;
+      const oneSidedFactor = bin === fftSize / 2 ? 1 : 2;
+      const psd = power[bin] * psdScale * oneSidedFactor;
+      sumMicrovoltsSquared += psd * binWidthHz;
+    }
+    return sumMicrovoltsSquared;
+  };
+
+  const computeAbsoluteBands = (power, fftSize) => {
+    return Object.fromEntries(
+      BAND_DEFINITIONS.map(([name, lowHz, highHz]) => {
+        return [name, absoluteBandPower(power, fftSize, lowHz, highHz)];
+      })
+    );
+  };
+
   const appendBounded = (array, value, maximum) => {
     array.push(value);
     if (array.length > maximum) array.splice(0, array.length - maximum);
@@ -142,6 +186,7 @@ const DerivedSignals = (() => {
     const alpha = sumBand(alphaPower, ALPHA_FFT_SIZE, 8, 13);
     const totalPower30 = sumBand(alphaPower, ALPHA_FFT_SIZE, 4, 30);
     const relativeAlpha = alpha / Math.max(1e-12, totalPower30);
+    const absoluteBands = computeAbsoluteBands(alphaPower, ALPHA_FFT_SIZE);
 
     const linePower = meanBand(alphaPower, ALPHA_FFT_SIZE, 59, 61.5);
     const adjacentPower = (
@@ -159,6 +204,7 @@ const DerivedSignals = (() => {
       contact,
       highFrequencyActivity,
       alphaRatio,
+      bandPowers: reliable ? absoluteBands : null,
       ready: true,
       lineNoiseDb,
       reliable,
@@ -196,6 +242,7 @@ const DerivedSignals = (() => {
       contact: clamp(100 * (1 - signalQuality / 200)),
       highFrequencyActivity: reliable ? snapshot.highFrequencyActivity : null,
       alphaRatio: reliable ? snapshot.alphaRatio : null,
+      bandPowers: reliable ? snapshot.bandPowers : null,
       reliable,
       native: {
         ...(snapshot.native || {}),
@@ -214,6 +261,7 @@ const DerivedSignals = (() => {
       contact: 0,
       highFrequencyActivity: null,
       alphaRatio: null,
+      bandPowers: null,
       ready: false,
       lineNoiseDb: null,
       reliable: false,

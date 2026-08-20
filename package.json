@@ -5,7 +5,7 @@
   "description": "Standalone browser-based TGAM signal guessing visualization",
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/parser.test.js && node tests/serial-source.test.js && node tests/recorder-core.test.js && node tests/recorder.test.js && node tests/playback-core.test.js && node tests/page.test.js"
+    "test": "node tests/parser.test.js && node tests/serial-source.test.js && node tests/derived-signals.test.js && node tests/recorder-core.test.js && node tests/recorder.test.js && node tests/playback-core.test.js && node tests/page.test.js"
   },
   "engines": {
     "node": ">=18"
