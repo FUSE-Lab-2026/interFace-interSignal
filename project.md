@@ -129,6 +129,8 @@ Node는 `public/`을 `localhost`에 제공하는 정적 서버 역할만 한다.
 
 ASIC band 순서는 `delta`, `theta`, `lowAlpha`, `highAlpha`, `lowBeta`,
 `highBeta`, `lowGamma`, `midGamma`다.
+이 8개 구분은 packet metadata 보존용이다. 카드 03은 `0x83`을 사용하지 않고
+raw EEG에서 표준 5개 band를 직접 계산한다.
 
 ## 녹화 데이터 규격
 
@@ -224,11 +226,9 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
   `PSD[k] = 2 * |FFT((x_uV - mean) * Hann)[k]|^2 / (Fs * sum(Hann^2))`
   단위는 `uV^2/Hz`; DC 제외, Nyquist bin은 2배하지 않음
 - band power: 해당 범위 bin의 `PSD[k] * 0.5 Hz` 합, 단위 `uV^2`
-- band 범위: Delta 0.5-2.75 Hz, Theta 3.5-6.75 Hz,
-  Low Alpha 7.5-9.25 Hz, High Alpha 10-11.75 Hz,
-  Low Beta 13-16.75 Hz, High Beta 18-29.75 Hz,
-  Low Gamma 31-39.75 Hz, Mid Gamma 41-49.75 Hz
-- 시각화: `D`, `T`, `LA`, `HA`, `LB`, `HB`, `LG`, `MG` 8개 막대
+- band 범위: Delta 0.5-4 Hz, Theta 4-8 Hz, Alpha 8-13 Hz,
+  Beta 13-30 Hz, Gamma 30-50 Hz
+- 시각화: `D`, `T`, `A`, `B`, `G` 5개 막대
 - 고정 log 표시 범위: `0.1-10,000 uV^2`
 - 높이: `clamp((log10(Power) - log10(0.1)) / 5, 0, 1)`
 - strongest band 또는 total power 기준 정규화 없음; 같은 높이는 시점이 달라도
@@ -276,7 +276,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 ## 필터링 정책
 
 - raw EEG 전체에 적용하는 global filter는 없음
-- 카드 03은 평균 제거와 Hann window 후 0.5-49.75 Hz band PSD만 적분
+- 카드 03은 평균 제거와 Hann window 후 0.5-50 Hz band PSD만 적분
 - 카드 05는 4-45 Hz만 공식에 사용
 - 카드 06은 4-30 Hz만 공식에 사용
 - 60 Hz 전기 간섭은 카드 03, 05, 06의 계산 범위 밖에 있음
@@ -378,7 +378,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] 1,266 x 666 short-wide viewport에서 camera/control card overflow 수정
 - [x] session JSON manifest와 자동 stop/finalize 구현
 - [x] parser, mock serial, recorder lifecycle, page structure 자동 테스트 통과
-- [x] 100 uV peak 10.5 Hz synthetic sine의 High Alpha power가 약 5,000 uV^2인지 자동 검증
+- [x] 100 uV peak 10.5 Hz synthetic sine의 Alpha power가 약 5,000 uV^2인지 자동 검증
 - [x] 실제 2026-08-20 raw EEG TXT 2개에서 absolute band-power 범위 검증
 - [x] 1,440 x 900 desktop 및 500 px narrow browser render 확인
 - [x] 1,440 x 900 및 500 x 900 Record tab browser render 확인

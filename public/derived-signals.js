@@ -12,14 +12,11 @@ const DerivedSignals = (() => {
   const MAX_SCORE_HISTORY = 600;
   const RAW_TO_MICROVOLTS = (1.8 / 4096) / 2000 * 1e6;
   const BAND_DEFINITIONS = [
-    ["delta", 0.5, 2.75],
-    ["theta", 3.5, 6.75],
-    ["lowAlpha", 7.5, 9.25],
-    ["highAlpha", 10, 11.75],
-    ["lowBeta", 13, 16.75],
-    ["highBeta", 18, 29.75],
-    ["lowGamma", 31, 39.75],
-    ["midGamma", 41, 49.75],
+    ["delta", 0.5, 4],
+    ["theta", 4, 8],
+    ["alpha", 8, 13],
+    ["beta", 13, 30],
+    ["gamma", 30, 50],
   ];
 
   let rawBuffer = new Float32Array(ALPHA_FFT_SIZE);

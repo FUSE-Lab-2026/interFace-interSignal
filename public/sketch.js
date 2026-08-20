@@ -12,14 +12,11 @@ const signalGuessingSketch = (p) => {
   const BAND_KEYS = [
     "delta",
     "theta",
-    "lowAlpha",
-    "highAlpha",
-    "lowBeta",
-    "highBeta",
-    "lowGamma",
-    "midGamma",
+    "alpha",
+    "beta",
+    "gamma",
   ];
-  const BAND_LABELS = ["D", "T", "LA", "HA", "LB", "HB", "LG", "MG"];
+  const BAND_LABELS = ["D", "T", "A", "B", "G"];
 
   let connectButton = null;
   let visibleCardIds = new Set(["contact"]);
@@ -342,8 +339,8 @@ const signalGuessingSketch = (p) => {
     const trackY = visualBounds.y + unitHeight;
     const trackWidth = visualBounds.width - axisWidth;
     const trackHeight = visualBounds.height - unitHeight - labelHeight;
-    const gap = Math.max(4, Math.min(10, trackWidth * 0.018));
-    const barWidth = Math.max(8, (trackWidth - gap * 7) / 8);
+    const gap = Math.max(6, Math.min(16, trackWidth * 0.03));
+    const barWidth = Math.max(12, (trackWidth - gap * (BAND_KEYS.length - 1)) / BAND_KEYS.length);
 
     p.fill(112);
     p.noStroke();

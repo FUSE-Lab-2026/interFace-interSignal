@@ -102,10 +102,11 @@ eye-state classifier and does not directly measure eye movement.
   `PSD[k] = 2 * |FFT((x_uV - mean) * Hann)[k]|^2 / (Fs * sum(Hann^2))`
   in `uV^2/Hz`; DC is excluded and the Nyquist bin is not doubled.
 - Band power: `Power_band = sum(PSD[k] * 0.5 Hz)` for bins inside the band
-- Bands: delta 0.5-2.75 Hz, theta 3.5-6.75 Hz, low alpha 7.5-9.25 Hz,
-  high alpha 10-11.75 Hz, low beta 13-16.75 Hz, high beta 18-29.75 Hz,
-  low gamma 31-39.75 Hz, mid gamma 41-49.75 Hz
-- Labels: `D`, `T`, `LA`, `HA`, `LB`, `HB`, `LG`, `MG`
+- Bands: Delta 0.5-4 Hz, Theta 4-8 Hz, Alpha 8-13 Hz, Beta 13-30 Hz,
+  Gamma 30-50 Hz
+- Labels: `D`, `T`, `A`, `B`, `G`
+- The card does not use or display the TGAM `0x83` low/high band subdivisions.
+  Those native packet values remain available to the parser and recorder.
 - Display axis: fixed logarithmic range from `0.1` to `10,000 uV^2`
 - Bar height:
   `clamp((log10(Power_band) - log10(0.1)) / 5, 0, 1)`
