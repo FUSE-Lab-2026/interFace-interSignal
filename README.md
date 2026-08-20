@@ -47,16 +47,17 @@ the viewport. The panels remain intentionally untitled during the guessing
 activity. Their fixed order is:
 
 1. Signal Contact
-2. Movement
-3. Eyes Closed
-4. Raw EEG
-5. TGAM band power
-6. TGAM Attention and Meditation
+2. Raw EEG
+3. TGAM band power
+4. TGAM Attention and Meditation
+5. Movement
+6. Eyes Closed
 
-The first three numeric values are continuous workshop scores from 0 to 100.
-Movement and Eyes Closed remain unavailable while TGAM reports poor electrode
-contact. The additional cards display the raw stream and native TGAM packet
-values rather than new inferred scores.
+Only Signal Contact is selected and shown on first load. Signal Contact,
+Movement, and Eyes Closed are continuous workshop scores from 0 to 100; Movement
+and Eyes Closed remain unavailable while TGAM reports poor electrode contact.
+The other cards display the raw stream and native TGAM packet values rather than
+new inferred scores.
 
 ## Record tab
 

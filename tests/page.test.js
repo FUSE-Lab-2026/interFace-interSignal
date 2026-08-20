@@ -10,14 +10,28 @@ const playback = fs.readFileSync(path.join(publicPath, "playback.js"), "utf8");
 const styles = fs.readFileSync(path.join(publicPath, "style.css"), "utf8");
 
 const cardIds = Array.from(html.matchAll(/data-card-id="([^"]+)"/g), (match) => match[1]);
-assert.deepEqual(cardIds, ["contact", "movement", "eyes", "raw", "bands", "esense"]);
+assert.deepEqual(cardIds, ["contact", "raw", "bands", "esense", "movement", "eyes"]);
 assert.equal((html.match(/type="checkbox"/g) || []).length, 6);
-assert.equal((html.match(/checked/g) || []).length, 6);
+assert.equal((html.match(/checked/g) || []).length, 1);
+assert(html.includes('data-card-id="contact" checked'));
+const renderedCards = Array.from(
+  sketch.matchAll(/\{ id: "([^"]+)", number: "([^"]+)"/g),
+  (match) => [match[1], match[2]]
+);
+assert.deepEqual(renderedCards, [
+  ["contact", "01"],
+  ["raw", "02"],
+  ["bands", "03"],
+  ["esense", "04"],
+  ["movement", "05"],
+  ["eyes", "06"],
+]);
 
 for (const drawFunction of ["drawContact", "drawMovement", "drawEyes", "drawRaw", "drawBands", "drawESense"]) {
   assert(sketch.includes(`const ${drawFunction} =`), `${drawFunction} is missing`);
 }
 assert(sketch.includes("[data-card-id]:checked"));
+assert(sketch.includes('let visibleCardIds = new Set(["contact"])'));
 assert(sketch.includes("resizeForLayout()"));
 assert(sketch.includes("TGAM Q ${Math.round(signalQuality)}/200"));
 assert.equal((html.match(/data-view-button=/g) || []).length, 3);

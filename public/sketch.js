@@ -7,7 +7,6 @@ const signalGuessingSketch = (p) => {
   const RAW_HISTORY_SIZE = 1024;
   const RAW_DISPLAY_SIZE = 512;
   const RAW_DISPLAY_LIMIT = 2048;
-  const CARD_IDS = ["contact", "movement", "eyes", "raw", "bands", "esense"];
   const BAND_KEYS = [
     "delta",
     "theta",
@@ -21,7 +20,7 @@ const signalGuessingSketch = (p) => {
   const BAND_LABELS = ["D", "T", "LA", "HA", "LB", "HB", "LG", "MG"];
 
   let connectButton = null;
-  let visibleCardIds = new Set(CARD_IDS);
+  let visibleCardIds = new Set(["contact"]);
   let rawHistory = [];
   let latestBands = null;
   let attention = null;
@@ -65,7 +64,14 @@ const signalGuessingSketch = (p) => {
     signalQuality = null;
   };
 
+  const getCheckedCardIds = () => {
+    return new Set(
+      Array.from(document.querySelectorAll("[data-card-id]:checked"), (item) => item.dataset.cardId)
+    );
+  };
+
   p.setup = () => {
+    visibleCardIds = getCheckedCardIds();
     const height = getCanvasHeight(p.windowWidth, p.windowHeight, visibleCardIds.size);
     const canvas = p.createCanvas(p.windowWidth, height);
     canvas.parent("signal-guessing");
@@ -81,9 +87,7 @@ const signalGuessingSketch = (p) => {
 
     for (const input of document.querySelectorAll("[data-card-id]")) {
       input.addEventListener("change", () => {
-        visibleCardIds = new Set(
-          Array.from(document.querySelectorAll("[data-card-id]:checked"), (item) => item.dataset.cardId)
-        );
+        visibleCardIds = getCheckedCardIds();
         resizeForLayout();
       });
     }
@@ -394,11 +398,11 @@ const signalGuessingSketch = (p) => {
     const connected = TGAMSerialSource.isConnected();
     return [
       { id: "contact", number: "01", draw: (visual, panel) => drawContact(snapshot.contact, visual, panel) },
-      { id: "movement", number: "02", draw: (visual, panel) => drawMovement(snapshot.highFrequencyActivity, visual, panel) },
-      { id: "eyes", number: "03", draw: (visual, panel) => drawEyes(snapshot.alphaRatio, visual, panel) },
-      { id: "raw", number: "04", draw: (visual, panel) => drawRaw(visual, panel, connected) },
-      { id: "bands", number: "05", draw: (visual) => drawBands(visual, connected) },
-      { id: "esense", number: "06", draw: (visual) => drawESense(visual, connected) },
+      { id: "raw", number: "02", draw: (visual, panel) => drawRaw(visual, panel, connected) },
+      { id: "bands", number: "03", draw: (visual) => drawBands(visual, connected) },
+      { id: "esense", number: "04", draw: (visual) => drawESense(visual, connected) },
+      { id: "movement", number: "05", draw: (visual, panel) => drawMovement(snapshot.highFrequencyActivity, visual, panel) },
+      { id: "eyes", number: "06", draw: (visual, panel) => drawEyes(snapshot.alphaRatio, visual, panel) },
     ];
   };
 

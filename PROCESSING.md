@@ -120,8 +120,9 @@ power values in different packets.
 - Panel names and formula descriptions are intentionally hidden.
 - Cards are identified only as `01` through `06`. Numbered checkboxes independently
   show or hide each card without revealing its title.
-- Fixed order: Signal Contact, Movement, Eyes Closed, Raw EEG, TGAM band power,
-  TGAM Attention/Meditation.
+- Fixed order: Signal Contact, Raw EEG, TGAM band power, TGAM
+  Attention/Meditation, Movement, Eyes Closed.
+- On first load, only card `01` Signal Contact is checked and visible.
 - Visible cards reflow to three columns on wide screens, two columns on medium
   screens, and one scrollable column on narrow screens.
 - Missing/contact-gated values display `--`.
