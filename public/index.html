@@ -12,7 +12,7 @@
   <main id="signal-guessing">
     <nav class="app-tabs" aria-label="Application views">
       <button class="app-tab is-active" type="button" data-view-button="signals" aria-selected="true">Signals</button>
-      <button class="app-tab" type="button" data-view-button="record" aria-selected="false">Record</button>
+      <button class="app-tab" type="button" data-view-button="record" aria-selected="false">녹화</button>
       <button class="app-tab" type="button" data-view-button="playback" aria-selected="false">Playback</button>
     </nav>
     <nav class="panel-toggles" aria-label="Visible signal cards">
@@ -47,50 +47,50 @@
         <span class="record-card-number">03</span>
         <div class="camera-frame">
           <video id="camera-preview" autoplay muted playsinline></video>
-          <div id="camera-placeholder" class="camera-placeholder">CAMERA OFF</div>
+          <div id="camera-placeholder" class="camera-placeholder">카메라 꺼짐</div>
         </div>
         <canvas id="camera-capture" class="capture-canvas" width="134" height="100"></canvas>
-        <button id="enable-camera" class="tool-button" type="button">Enable Camera</button>
+        <button id="enable-camera" class="tool-button" type="button">카메라 켜기</button>
         <dl class="camera-specs">
-          <div><dt>FRAME</dt><dd>134 x 100</dd></div>
-          <div><dt>RATE</dt><dd>8 FPS</dd></div>
-          <div><dt>VIDEO</dt><dd>50 kbps</dd></div>
-          <div><dt>AUDIO</dt><dd>OFF</dd></div>
+          <div><dt>해상도</dt><dd>134 x 100</dd></div>
+          <div><dt>프레임</dt><dd>8 FPS</dd></div>
+          <div><dt>영상</dt><dd>50 kbps</dd></div>
+          <div><dt>오디오</dt><dd>꺼짐</dd></div>
         </dl>
       </div>
 
       <div class="record-controls">
         <span class="record-card-number">04</span>
         <div class="record-actions">
-          <button id="choose-folder" class="tool-button" type="button">Choose Folder</button>
+          <button id="choose-folder" class="tool-button" type="button">저장 폴더 선택</button>
           <button id="start-recording-30" class="tool-button record-button" type="button" disabled>
-            <span class="record-dot" aria-hidden="true"></span>Start 30 s
+            <span class="record-dot" aria-hidden="true"></span>30초 녹화
           </button>
           <button id="start-recording-60" class="tool-button record-button" type="button" disabled>
-            <span class="record-dot" aria-hidden="true"></span>Start 1 min
+            <span class="record-dot" aria-hidden="true"></span>1분 녹화
           </button>
-          <button id="stop-recording" class="tool-button" type="button" disabled>Stop</button>
+          <button id="stop-recording" class="tool-button" type="button" disabled>녹화 중지</button>
         </div>
 
         <dl class="record-status-grid">
-          <div><dt>SESSION</dt><dd id="record-state">IDLE</dd></div>
-          <div><dt>LEFT</dt><dd id="record-elapsed">--:--</dd></div>
-          <div><dt>PACKETS</dt><dd id="record-packets">0</dd></div>
-          <div><dt>RAW</dt><dd id="record-raw">0</dd></div>
+          <div><dt>상태</dt><dd id="record-state">대기</dd></div>
+          <div><dt>남은 시간</dt><dd id="record-elapsed">--:--</dd></div>
+          <div><dt>패킷</dt><dd id="record-packets">0</dd></div>
+          <div><dt>RAW 샘플</dt><dd id="record-raw">0</dd></div>
         </dl>
 
         <div class="record-destination">
-          <span>DESTINATION</span>
-          <output id="record-folder">NOT SELECTED</output>
+          <span>저장 위치</span>
+          <output id="record-folder">선택되지 않음</output>
         </div>
-        <p id="record-message" class="record-message" role="status" aria-live="polite">Connect TGAM, choose a folder, and enable the camera.</p>
+        <p id="record-message" class="record-message" role="status" aria-live="polite">TGAM을 연결하고 저장 폴더와 카메라를 설정해 주세요.</p>
       </div>
 
       <div class="record-files">
-        <div class="record-file"><span>PACKETS</span><output id="packets-file">--</output></div>
+        <div class="record-file"><span>패킷 로그</span><output id="packets-file">--</output></div>
         <div class="record-file"><span>RAW EEG</span><output id="raw-file">--</output></div>
-        <div class="record-file"><span>CAMERA</span><output id="video-file">--</output></div>
-        <div class="record-file"><span>MANIFEST</span><output id="manifest-file">--</output></div>
+        <div class="record-file"><span>카메라 영상</span><output id="video-file">--</output></div>
+        <div class="record-file"><span>세션 정보</span><output id="manifest-file">--</output></div>
       </div>
     </section>
 
@@ -103,8 +103,14 @@
           <button id="restart-playback" class="playback-button" type="button" disabled>Restart</button>
           <button id="clear-playback" class="playback-button" type="button" disabled>Clear</button>
         </div>
+        <div class="playback-card-options" role="group" aria-label="Additional signal card">
+          <button class="playback-card-option is-active" type="button" data-playback-card="bands" aria-pressed="true" title="03 Absolute band power">03</button>
+          <button class="playback-card-option" type="button" data-playback-card="esense" aria-pressed="false" title="04 Attention / Meditation">04</button>
+          <button class="playback-card-option" type="button" data-playback-card="movement" aria-pressed="false" title="05 Movement">05</button>
+          <button class="playback-card-option" type="button" data-playback-card="eyes" aria-pressed="false" title="06 Eyes Closed">06</button>
+        </div>
         <output id="playback-count" class="playback-count">0 / 3</output>
-        <input id="playback-files" type="file" accept=".txt,.webm,video/webm" multiple hidden />
+        <input id="playback-files" type="file" accept=".txt,.ndjson,.webm,video/webm,application/x-ndjson" multiple hidden />
       </header>
       <p id="playback-message" class="playback-message" role="status" aria-live="polite">No recordings loaded.</p>
       <div id="playback-empty" class="playback-empty">NO RECORDINGS</div>

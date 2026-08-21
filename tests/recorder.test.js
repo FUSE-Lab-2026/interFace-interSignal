@@ -198,7 +198,7 @@ const fileText = async (name) => {
   await elements["#start-recording-30"].trigger("click");
   assert.equal(recorder.getState(), "recording");
   assert.equal(elements["#record-folder"].textContent, "TGAMRecordings");
-  assert.equal(elements["#choose-folder"].textContent, "Folder Selected");
+  assert.equal(elements["#choose-folder"].textContent, "폴더 선택 완료");
   assert(scheduledTimeouts.some((timer) => timer.delay === 30000));
 
   clock = 1250;

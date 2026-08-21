@@ -2,12 +2,12 @@
 
 ## 문서 정보
 
-- 마지막 업데이트: 2026-08-21
-- 현재 단계: Playback 카드 03-06 선택과 Record 한국어 UI 구현 완료, 실제 TGAM/카메라 통합 검증 전
+- 마지막 업데이트: 2026-08-20
+- 현재 단계: Signals/Record/Playback MVP 및 GitHub Pages 자동 배포 구성 완료, 실제 TGAM/카메라 통합 검증 전
 - 저장소: `FUSE-Lab-2026/interFace-interSignal`
 - 기준 브랜치: `main`
 - 문서 역할: 데이터 규격, MVP 범위, 구현 상태, 검증 상태를 관리하는 단일 기준 문서
-- 직전 규격: `backup/project-2026-08-21-pre-playback-cards.md`
+- 직전 규격: `backup/project-2026-08-18-v2.md`
 - 초기 문서: `backup/project-2026-08-11-legacy-tgam-eeg-webviz.md`
 
 이 파일은 데이터 계약, 신호 계산, UI 범위, 완료 상태가 바뀔 때 코드와 함께
@@ -44,8 +44,7 @@ TGAM EEG를 처음 접하는 워크숍 참여자가 용어를 먼저 배우기�
 - 134 x 100, 8 FPS, audio 없는 저용량 webcam WebM 저장
 - 30초 또는 1분 고정 길이 녹화와 자동 finalize
 - session 설정과 parser 통계를 담은 JSON manifest 저장
-- 최대 3개 camera WebM/raw EEG TXT/optional packet NDJSON session의 browser-only 비교 재생
-- Playback에서 Raw EEG 옆에 카드 03-06 중 하나를 선택해 동시 표시
+- 최대 3개 camera WebM/raw EEG TXT pair의 browser-only 비교 재생
 - `public/` 정적 파일을 GitHub Pages에 자동 배포
 
 ### MVP에서 제외
@@ -69,10 +68,10 @@ TGAM serial bytes
 
 Web camera -> preview -> 134 x 100 canvas -> MediaRecorder -> WebM writer
 
-Local camera WebM + raw EEG TXT + optional packet NDJSON
-  -> filename session pair
-  -> video currentTime 기반 4초 raw window + 선택 카드 03-06
-  -> 최대 3개 camera/raw/selected-card row
+Local camera WebM + raw EEG TXT
+  -> filename pair
+  -> video currentTime 기반 4초 raw window
+  -> 최대 3개 camera/EEG side-by-side row
 ```
 
 Node는 `public/`을 `localhost`에 제공하는 정적 서버 역할만 한다. Node가 시리얼
@@ -309,20 +308,16 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - 619 px 이하에서는 Signal Contact, Raw EEG, camera, recorder 순서로 1열 배치한다.
 - Record view에서는 Movement, Eyes Closed, Band Power, Attention/Meditation을 표시하지 않는다.
 - recorder card는 folder, 30초/1분 시작, Stop, 남은 시간, frame/raw count를 표시한다.
-- Record tab, camera 상태, folder/record control, status, 안내/오류 문구는 한국어로 표시한다.
 - camera preview는 최대 190 px 너비로 제한하고 recorder status는 1행 4열로 표시해
   300 px 높이 card와 짧고 넓은 browser viewport에서도 내부 요소가 넘치지 않게 한다.
-- Playback은 session별 camera, raw EEG, 선택 카드 하나를 한 row에 표시한다.
-- 1,400 px content 기준 폭은 camera 504 px, raw EEG 597 px, 선택 카드 299 px이다.
-  Raw EEG는 기존 896 px의 정확히 2/3이며 줄어든 299 px을 새 카드가 사용한다.
-- 상단 `03`, `04`, `05`, `06` segmented control은 모든 session의 세 번째 slot을 함께 변경한다.
-- Playback row는 최대 3개까지 세로로 쌓이며 narrow viewport에서는 세 pane을 1열로 배치한다.
+- Playback은 session별 camera와 raw EEG를 한 row에서 좌우로 표시한다.
+- Playback row는 최대 3개까지 세로로 쌓이며 narrow viewport에서는 camera와 EEG를 1열로 배치한다.
 - 공통 Play all, Pause, Restart, Clear와 session별 native video control/remove를 제공한다.
 
 ## Playback 데이터 규격
 
-- pair key: `-camera-100p.webm` 또는 `-camera-240p.webm`, `-raw-eeg.txt`,
-  optional `-tgam-packets.ndjson` 앞의 공통 filename stem
+- pair key: `-camera-100p.webm` 또는 `-camera-240p.webm`와
+  `-raw-eeg.txt` 앞의 공통 filename stem
 - 최대 pair 수: 3
 - raw 입력 columns: `sample_index`, `elapsed_ms`, `unix_ms`, `raw`
 - 전처리: 없음. filtering, interpolation, resampling을 하지 않음
@@ -338,13 +333,6 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - 일반 window 위치: current time 이전 3,000 ms부터 이후 최대 1,000 ms
 - 표시 clipping: `-2048`에서 `+2048`; 원본 sample은 변경하지 않음
 - file 전송: 없음. `File.text()`와 local object URL만 사용
-- 카드 03: raw EEG 1,024 samples, Hann, FFT, one-sided PSD로 계산한 5-band absolute power
-- 카드 05: 최신 512 samples의 `100 * Power(30-45 Hz) / Power(4-45 Hz)`
-- 카드 06: 최신 1,024 samples의 `100 * Power(8-13 Hz) / Power(4-30 Hz)`
-- 카드 03/05/06 hop: 128 samples, 약 0.25초
-- 카드 04: packet NDJSON의 native Attention/Meditation을 `elapsed_ms` 기준으로 조회
-- NDJSON이 없는 이전 recording에서 카드 04는 `NDJSON REQUIRED`로 표시
-- NDJSON Poor Signal이 있으면 값이 0이 아닌 구간에서 카드 03/05/06을 숨긴다.
 
 ## 파일별 책임
 
@@ -358,8 +346,8 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 | `public/tabs.js` | hash 기반 in-app view 전환 |
 | `public/recorder-core.js` | 녹화 상수, file name, frame/raw serialization |
 | `public/recorder.js` | 폴더, camera, TGAM frame, file writer, stop/finalize lifecycle |
-| `public/playback-core.js` | file pairing, TXT/NDJSON parse, playback window와 offline 카드 03/05/06 계산 |
-| `public/playback.js` | 최대 3개 video/raw EEG/선택 카드 playback rendering |
+| `public/playback-core.js` | file pairing, raw TXT parse, playback window 계산 |
+| `public/playback.js` | 최대 3개 video/raw EEG playback와 waveform rendering |
 | `public/style.css` | Signals, Record, Playback view style |
 | `server.js` | dependency-free localhost static server |
 | `PROCESSING.md` | 계산과 시각 매핑의 상세 변경 기록 |
@@ -402,11 +390,6 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] 실제 TXT 2개의 timestamp burst 확인: sample의 약 69-74%가 직전 sample과 같은
   rounded `elapsed_ms`를 사용하며 일반 burst 크기는 4-5 samples
 - [x] Playback x축을 512 Hz sample-index clock으로 복원하고 실제 pair render 확인
-- [x] Playback Raw EEG 폭을 기존의 2/3로 줄이고 선택 카드 slot 추가
-- [x] Playback 카드 03-06 global selector와 offline feature/NDJSON A/M 구현
-- [x] 실제 2026-08-20 session 8초에서 카드 03과 native A=7/M=47 render 확인
-- [x] Record tab 주요 label, 상태, 안내 및 오류 문구 한국어화
-- [x] 1,440 x 900 및 500 x 900 Playback/Record overflow와 responsive stack 확인
 - [x] `public/` 전용 GitHub Pages Actions workflow 추가
 
 ### 실제 장비로 확인 필요
@@ -439,7 +422,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 7. disconnect 후 stale live 값이 현재 값처럼 표시되지 않는다.
 8. Record tab에서 30초/1분 선택 후 네 출력 파일을 만들고 자동 종료 후 다시 열 수 있다.
 9. 1분 동시 녹화에서 browser memory가 지속적으로 증가하지 않는다.
-10. Playback에서 최대 3개 session을 열고 각 video seek에 raw EEG와 선택 카드 03-06이 동기화된다.
+10. Playback에서 최대 3개 WebM/TXT pair를 열고 각 video seek에 raw EEG가 동기화된다.
 11. `npm test`가 통과한다.
 
 ## 알려진 제약 및 위험
@@ -461,8 +444,6 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
   불완전할 수 있다.
 - MediaRecorder의 실제 codec/bitrate는 browser가 요청과 다르게 선택할 수 있다.
 - Playback file pairing은 현재 filename suffix 규격에 의존한다.
-- 이전 recording의 WebM/TXT만 선택하면 카드 03/05/06은 사용할 수 있지만 native
-  Attention/Meditation이 없는 카드 04는 표시할 수 없다.
 - GitHub Pages에서 p5.js CDN을 사용하므로 최초 load에는 인터넷 연결이 필요하다.
 - Web Serial과 File System Access API 지원 범위 때문에 hosted version도 desktop
   Chromium 사용을 전제로 한다.

@@ -74,5 +74,21 @@ for (const id of [
 assert(playback.includes("pairRecordingFiles(fileList)"));
 assert(playback.includes("video.currentTime * 1000"));
 assert(playback.includes("MAX_RECORDINGS"));
+assert.equal((html.match(/data-playback-card=/g) || []).length, 4);
+for (const mode of ["bands", "esense", "movement", "eyes"]) {
+  assert(html.includes(`data-playback-card="${mode}"`), `${mode} playback option is missing`);
+}
+assert(html.includes(".ndjson"));
+assert(playback.includes("calculateFeatureSeries"));
+assert(playback.includes("parsePacketNdjson"));
+for (const drawFunction of ["drawBands", "drawESense", "drawMovement", "drawEyes"]) {
+  assert(playback.includes(`const ${drawFunction} =`), `${drawFunction} playback renderer is missing`);
+}
+assert(styles.includes("minmax(0, 0.4267fr)"));
+assert(styles.includes("minmax(180px, 0.2133fr)"));
+for (const text of ["녹화", "카메라 켜기", "저장 폴더 선택", "30초 녹화", "1분 녹화", "녹화 중지"]) {
+  assert(html.includes(text), `${text} Korean record label is missing`);
+}
+assert(recorder.includes('recording: "녹화 중"'));
 
 console.log("Standalone page structure tests passed");

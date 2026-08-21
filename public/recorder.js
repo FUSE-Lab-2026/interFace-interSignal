@@ -48,7 +48,7 @@ const TGAMSessionRecorder = (() => {
     let closed = false;
     return {
       write(data) {
-        if (closed) return Promise.reject(new Error("File writer is closed"));
+        if (closed) return Promise.reject(new Error("파일 저장이 이미 종료되었습니다."));
         chain = chain.then(() => writable.write(data));
         return chain;
       },
@@ -85,19 +85,27 @@ const TGAMSessionRecorder = (() => {
 
   const describeCameraError = (error) => {
     const messages = {
-      NotAllowedError: "Camera permission was denied. Allow this site in Chrome and enable Chrome in macOS Privacy & Security > Camera, then retry.",
-      NotFoundError: "No webcam was found.",
-      NotReadableError: "The webcam is unavailable. Close other camera apps and check macOS Camera privacy settings.",
-      OverconstrainedError: "The webcam could not provide a compatible video mode.",
-      SecurityError: "Camera access is blocked by the browser security policy.",
-      AbortError: "The webcam did not finish starting. Retry Camera.",
+      NotAllowedError: "카메라 권한이 거부되었습니다. 브라우저 설정에서 이 사이트의 카메라 사용을 허용한 뒤 다시 시도해 주세요.",
+      NotFoundError: "연결된 카메라를 찾을 수 없습니다.",
+      NotReadableError: "카메라를 사용할 수 없습니다. 다른 앱에서 카메라를 사용 중인지 확인해 주세요.",
+      OverconstrainedError: "이 카메라에서 지원하지 않는 영상 설정입니다.",
+      SecurityError: "브라우저 보안 정책으로 카메라 사용이 차단되었습니다.",
+      AbortError: "카메라를 시작하지 못했습니다. 다시 시도해 주세요.",
     };
     return messages[error?.name] || error?.message || String(error);
   };
 
   const setState = (nextState) => {
+    const labels = {
+      idle: "대기",
+      preparing: "준비 중",
+      recording: "녹화 중",
+      stopping: "저장 중",
+      saved: "저장 완료",
+      error: "오류",
+    };
     state = nextState;
-    elements.state.textContent = nextState.toUpperCase();
+    elements.state.textContent = labels[nextState] || nextState;
     updateControls();
   };
 
@@ -111,8 +119,8 @@ const TGAMSessionRecorder = (() => {
     elements.chooseFolder.disabled = busy || !("showDirectoryPicker" in window);
     elements.enableCamera.disabled = busy || cameraStarting || !navigator.mediaDevices?.getUserMedia;
     elements.enableCamera.textContent = cameraStarting
-      ? "Starting Camera..."
-      : cameraReady() ? "Disable Camera" : "Enable Camera";
+      ? "카메라 연결 중..."
+      : cameraReady() ? "카메라 끄기" : "카메라 켜기";
     const startDisabled = busy || !ready || typeof MediaRecorder === "undefined";
     elements.start30.disabled = startDisabled;
     elements.start60.disabled = startDisabled;
@@ -132,7 +140,7 @@ const TGAMSessionRecorder = (() => {
       const elapsedMs = performance.now() - session.startedPerformanceMs;
       elements.elapsed.textContent = formatRemaining(session.plannedDurationMs - elapsedMs);
       if (!TGAMSerialSource.isConnected() && !stopPromise) {
-        setMessage("TGAM disconnected. Finalizing the current files.", true);
+        setMessage("TGAM 연결이 끊어졌습니다. 현재 파일을 저장하고 있습니다.", true);
         stopRecording("serial_disconnected");
       }
     }
@@ -140,7 +148,7 @@ const TGAMSessionRecorder = (() => {
 
   const chooseFolder = async () => {
     if (!("showDirectoryPicker" in window)) {
-      setMessage("Folder recording requires desktop Chrome/Chromium.", true);
+      setMessage("폴더 저장 기능은 데스크톱 Chrome 또는 Chromium에서 사용할 수 있습니다.", true);
       return;
     }
     try {
@@ -149,9 +157,9 @@ const TGAMSessionRecorder = (() => {
         mode: "readwrite",
       });
       elements.folder.textContent = directoryHandle.name;
-      elements.chooseFolder.textContent = "Folder Selected";
+      elements.chooseFolder.textContent = "폴더 선택 완료";
       elements.chooseFolder.title = directoryHandle.name;
-      setMessage("Recording folder selected.");
+      setMessage("녹화 파일을 저장할 폴더를 선택했습니다.");
     } catch (error) {
       if (error.name !== "AbortError") setMessage(error.message || String(error), true);
     }
@@ -162,7 +170,7 @@ const TGAMSessionRecorder = (() => {
     if (cameraStream) cameraStream.getTracks().forEach((track) => track.stop());
     cameraStream = null;
     elements.cameraPreview.srcObject = null;
-    setCameraStatus("CAMERA OFF");
+    setCameraStatus("카메라 꺼짐");
     updateControls();
   };
 
@@ -179,13 +187,13 @@ const TGAMSessionRecorder = (() => {
         callback(value);
       };
       const timeout = window.setTimeout(() => {
-        const error = new Error("The webcam connected but did not provide a video frame.");
+        const error = new Error("카메라는 연결되었지만 영상이 표시되지 않습니다.");
         error.name = "AbortError";
         finish(reject, error);
       }, CAMERA_START_TIMEOUT_MS);
       elements.cameraPreview.addEventListener("loadeddata", () => finish(resolve), { once: true });
       elements.cameraPreview.addEventListener("error", () => {
-        finish(reject, new Error("The webcam preview could not be displayed."));
+        finish(reject, new Error("카메라 미리보기를 표시할 수 없습니다."));
       }, { once: true });
     });
   };
@@ -194,25 +202,25 @@ const TGAMSessionRecorder = (() => {
     if (cameraStarting) return;
     if (cameraReady()) {
       stopCamera();
-      setMessage("Camera disabled.");
+      setMessage("카메라를 껐습니다.");
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
-      setMessage("Camera capture is unavailable in this browser.", true);
-      setCameraStatus("CAMERA UNAVAILABLE");
+      setMessage("이 브라우저에서는 카메라를 사용할 수 없습니다.", true);
+      setCameraStatus("카메라 사용 불가");
       return;
     }
     if (window.isSecureContext === false) {
-      setMessage("Camera access requires localhost or HTTPS.", true);
-      setCameraStatus("HTTPS REQUIRED");
+      setMessage("카메라를 사용하려면 localhost 또는 HTTPS로 접속해야 합니다.", true);
+      setCameraStatus("HTTPS 필요");
       return;
     }
 
     try {
       cameraStarting = true;
       updateControls();
-      setCameraStatus("REQUESTING CAMERA");
-      setMessage("Waiting for browser and macOS camera permission...");
+      setCameraStatus("카메라 권한 요청 중");
+      setMessage("브라우저의 카메라 권한을 확인해 주세요.");
       cameraStream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
@@ -229,9 +237,9 @@ const TGAMSessionRecorder = (() => {
       track.addEventListener("ended", () => {
         cameraStream = null;
         elements.cameraPreview.srcObject = null;
-        setCameraStatus("CAMERA STOPPED");
+        setCameraStatus("카메라 중지됨");
         if (state === "recording") {
-          setMessage("Camera stopped. Finalizing the current files.", true);
+          setMessage("카메라가 중지되었습니다. 현재 파일을 저장하고 있습니다.", true);
           stopRecording("camera_ended");
         }
         updateControls();
@@ -239,12 +247,12 @@ const TGAMSessionRecorder = (() => {
       elements.cameraPreview.srcObject = cameraStream;
       await elements.cameraPreview.play();
       await waitForCameraFrame();
-      setCameraStatus("CAMERA READY", true);
-      setMessage("Camera ready. Video will be downsampled to 134 x 100.");
+      setCameraStatus("카메라 준비 완료", true);
+      setMessage("카메라가 준비되었습니다. 영상은 134 x 100 크기로 저장됩니다.");
     } catch (error) {
       stopCamera();
       const message = describeCameraError(error);
-      const status = error?.name === "NotAllowedError" ? "CAMERA BLOCKED" : "CAMERA ERROR";
+      const status = error?.name === "NotAllowedError" ? "카메라 권한 차단됨" : "카메라 오류";
       setCameraStatus(status);
       setMessage(message, true);
     } finally {
@@ -264,7 +272,7 @@ const TGAMSessionRecorder = (() => {
     queues[name].write(data).catch((error) => {
       if (writeFailure) return;
       writeFailure = error;
-      setMessage(`File write failed: ${error.message || error}`, true);
+      setMessage(`파일을 저장하지 못했습니다: ${error.message || error}`, true);
       if (state === "recording") stopRecording("write_error");
     });
   };
@@ -340,7 +348,7 @@ const TGAMSessionRecorder = (() => {
       queueData("video", event.data);
     });
     mediaRecorder.addEventListener("error", (event) => {
-      const error = event.error || new Error("MediaRecorder failed");
+      const error = event.error || new Error("영상 녹화 중 오류가 발생했습니다.");
       setMessage(error.message || String(error), true);
       if (state === "recording") stopRecording("video_error");
     });
@@ -367,28 +375,28 @@ const TGAMSessionRecorder = (() => {
   const startRecording = async (plannedDurationMs) => {
     if (state === "recording" || state === "stopping") return;
     if (!TGAMSerialSource.isConnected()) {
-      setMessage("Connect TGAM before recording.", true);
+      setMessage("녹화를 시작하기 전에 TGAM을 연결해 주세요.", true);
       return;
     }
     if (!directoryHandle) {
-      setMessage("Choose a recording folder first.", true);
+      setMessage("먼저 녹화 파일을 저장할 폴더를 선택해 주세요.", true);
       return;
     }
     if (!cameraReady()) {
-      setMessage("Enable the camera before recording.", true);
+      setMessage("녹화를 시작하기 전에 카메라를 켜 주세요.", true);
       return;
     }
     if (typeof MediaRecorder === "undefined" || !elements.captureCanvas.captureStream) {
-      setMessage("Video recording is unavailable in this browser.", true);
+      setMessage("이 브라우저에서는 영상을 녹화할 수 없습니다.", true);
       return;
     }
     if (plannedDurationMs !== 30000 && plannedDurationMs !== 60000) {
-      setMessage("Choose a 30 second or 1 minute recording.", true);
+      setMessage("30초 또는 1분 녹화를 선택해 주세요.", true);
       return;
     }
 
     setState("preparing");
-    setMessage("Preparing synchronized output files...");
+    setMessage("EEG와 카메라를 함께 녹화할 준비를 하고 있습니다...");
     packetBuffer = "";
     rawBuffer = "";
     writeFailure = null;
@@ -427,8 +435,8 @@ const TGAMSessionRecorder = (() => {
         video: await openQueue(files.video),
       };
       createMediaRecorder();
-      if (!cameraReady()) throw new Error("Camera stopped while preparing files");
-      if (!TGAMSerialSource.isConnected()) throw new Error("TGAM disconnected while preparing files");
+      if (!cameraReady()) throw new Error("파일을 준비하는 동안 카메라가 중지되었습니다.");
+      if (!TGAMSerialSource.isConnected()) throw new Error("파일을 준비하는 동안 TGAM 연결이 끊어졌습니다.");
       session.startedUnixMs = Date.now();
       session.startedPerformanceMs = performance.now();
       session.initialStats = TGAMSerialSource.getStats();
@@ -449,7 +457,7 @@ const TGAMSessionRecorder = (() => {
       frameUnsubscribe = TGAMSerialSource.onFrame(recordFrame);
       mediaRecorder.start(1000);
       setState("recording");
-      setMessage(`Recording TGAM frames, raw EEG, and 100p video for ${plannedDurationMs / 1000} seconds.`);
+      setMessage(`${plannedDurationMs / 1000}초 동안 TGAM 패킷, Raw EEG, 저해상도 영상을 녹화합니다.`);
       const stopDelayMs = Math.max(
         0,
         plannedDurationMs - (performance.now() - session.startedPerformanceMs)
@@ -579,7 +587,7 @@ const TGAMSessionRecorder = (() => {
     await writeManifest(manifest);
     elements.elapsed.textContent = formatRemaining(session.plannedDurationMs - durationMs);
     setState("saved");
-    setMessage(`Saved ${session.frameCount} TGAM frames and ${session.rawSampleCount} raw samples.`);
+    setMessage(`TGAM 패킷 ${session.frameCount}개와 Raw EEG 샘플 ${session.rawSampleCount}개를 저장했습니다.`);
   };
 
   const stopRecording = (reason = "user") => {
@@ -590,7 +598,7 @@ const TGAMSessionRecorder = (() => {
         cleanupCaptureStream();
         if (queues) await abortQueues();
         setState("error");
-        setMessage(`Could not finalize recording: ${error.message || error}`, true);
+        setMessage(`녹화 파일 저장을 완료하지 못했습니다: ${error.message || error}`, true);
       })
       .finally(() => {
         stopPromise = null;
@@ -614,11 +622,11 @@ const TGAMSessionRecorder = (() => {
 
   window.setInterval(updateStatus, 250);
   if (!navigator.mediaDevices?.getUserMedia) {
-    setCameraStatus(window.isSecureContext === false ? "HTTPS REQUIRED" : "CAMERA UNAVAILABLE");
+    setCameraStatus(window.isSecureContext === false ? "HTTPS 필요" : "카메라 사용 불가");
     setMessage(
       window.isSecureContext === false
-        ? "Camera access requires localhost or HTTPS."
-        : "Camera capture is unavailable in this browser.",
+        ? "카메라를 사용하려면 localhost 또는 HTTPS로 접속해야 합니다."
+        : "이 브라우저에서는 카메라를 사용할 수 없습니다.",
       true
     );
   }

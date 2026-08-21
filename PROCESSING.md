@@ -224,12 +224,13 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
 
 ### Input pairing
 
-- Playback accepts up to three complete file pairs.
+- Playback accepts up to three complete camera/raw file pairs with optional packet NDJSON.
 - Raw EEG filename: `<session>-raw-eeg.txt`
 - Camera filename: `<session>-camera-100p.webm`; the earlier
   `<session>-camera-240p.webm` form is also accepted.
-- The common `<session>` filename stem pairs the two files. NDJSON and manifest
-  files are not required for playback.
+- Packet filename: `<session>-tgam-packets.ndjson`
+- The common `<session>` filename stem groups the files. NDJSON is optional for
+  cards 03, 05, and 06 but required for native card 04 Attention/Meditation.
 - Files are read locally with `File.text()` and browser object URLs. They are not
   uploaded or sent to `server.js`.
 
@@ -263,3 +264,21 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
   EEG cursor reads that recording's video clock.
 - Up to three recordings are rendered as vertically stacked comparison rows.
 - Removing or clearing a recording pauses the video and revokes its object URL.
+
+### Selectable signal card
+
+- Each desktop row uses Camera / Raw EEG / selected card proportions of
+  `0.36 / 0.4267 / 0.2133`. At 1,400 px this is 504 / 597 / 299 px, making Raw
+  EEG exactly two-thirds of its former 896 px width.
+- One global `03`-`06` selector changes the third pane for every loaded session.
+- Card 03 uses 1,024 raw samples, mean removal, Hann window, one-sided PSD, and
+  absolute Delta/Theta/Alpha/Beta/Gamma power in `uV^2`.
+- Card 05 uses a 512-sample window and
+  `100 * Power(30-45 Hz) / Power(4-45 Hz)`.
+- Card 06 uses a 1,024-sample window and
+  `100 * Power(8-13 Hz) / Power(4-30 Hz)`.
+- Raw-derived features advance every 128 samples, approximately 0.25 seconds.
+- Card 04 reads native Attention and Meditation from checksum-valid
+  `tgam_frame.decoded` NDJSON records and holds the latest values by `elapsed_ms`.
+- If packet NDJSON reports Poor Signal above 0, cards 03, 05, and 06 are hidden
+  for that interval. TXT-only recordings cannot apply this contact-quality gate.

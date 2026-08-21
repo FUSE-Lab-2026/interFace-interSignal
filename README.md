@@ -66,6 +66,9 @@ The `Record` tab uses the same browser-owned TGAM connection as the signal cards
 so the serial port is opened only once. Recording requires desktop Chrome or
 Chromium.
 
+The Record controls, camera states, recording status, and error guidance are
+shown in Korean for workshop operation.
+
 1. Press **Connect TGAM** and select the serial port.
 2. Open `Record` or visit `http://localhost:3000/#record`.
 3. Press **Choose Folder** and grant write access.
@@ -97,11 +100,16 @@ a slightly different actual video bitrate than requested.
 
 `Playback` or `#playback` compares the recorded camera and raw EEG in the
 browser. Press **Add recordings** and select each matching camera WebM and raw
-EEG TXT pair together. The filename before `-camera-*p.webm` and
-`-raw-eeg.txt` identifies the session.
+EEG TXT pair together. Include the matching `-tgam-packets.ndjson` when native
+Attention/Meditation playback is needed. The shared filename stem identifies
+the session.
 
 - Up to three sessions can be loaded at once.
-- Each session displays camera and raw EEG side by side.
+- Each session displays camera, raw EEG, and one selected signal card.
+- The `03`-`06` control applies one Signals-page card to every loaded session:
+  absolute five-band power, native Attention/Meditation, Movement, or Eyes Closed.
+- On desktop, Raw EEG is two-thirds of its previous width and the selected card
+  uses the remaining third. Narrow screens stack all three panes.
 - The raw waveform follows that session video's `currentTime`, including native
   video seeking.
 - Waveform x positions use `sample_index` and the TXT header sample rate
@@ -116,7 +124,9 @@ EEG TXT pair together. The filename before `-camera-*p.webm` and
   sample-clock reconstruction changes only their display positions.
 
 Current `camera-100p.webm` and earlier `camera-240p.webm` filenames are both
-accepted. Files stay local and are loaded through browser object URLs.
+accepted. Cards 03, 05, and 06 are reconstructed from raw EEG. Card 04 requires
+packet NDJSON; older WebM/TXT-only recordings show it as unavailable. Files stay
+local and are loaded through browser object URLs.
 
 Exact formulas, FFT windows, frequency ranges, and limitations are documented in
 [PROCESSING.md](PROCESSING.md).
