@@ -212,7 +212,9 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - 표시 window: 최신 512 samples, 약 1초
 - 표시 범위: -2,048부터 2,048까지 고정
 - 범위 밖 값은 화면에서만 clip하며 저장된 raw 값은 변경하지 않음
-- 시각화: 고정 grid 위의 선형 waveform과 최신 raw 정수
+- 시각화: 고정 grid 위의 선형 waveform과 최신 signed ADC raw 정수
+- 우측 상단 정수는 0-100 score가 아니라 TGAM reference 대비 순간 전압 방향과
+  크기를 나타내는 count이며 nominal 환산은 `raw * 0.2197265625 uV`
 
 ### 03 Absolute Band Power
 
@@ -318,7 +320,9 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
   Raw EEG는 기존 896 px의 정확히 2/3이며 줄어든 299 px을 새 카드가 사용한다.
 - 상단 `03`, `04`, `05`, `06` segmented control은 모든 session의 세 번째 slot을 함께 변경한다.
 - Playback row는 최대 3개까지 세로로 쌓이며 narrow viewport에서는 세 pane을 1열로 배치한다.
-- 공통 전체 재생, 일시정지, 처음부터, 모두 지우기와 session별 native video control/remove를 제공한다.
+- `녹화 파일 불러오기` 아래에 같은 session의 TXT, NDJSON, WebM 세 파일을 함께
+  선택해야 한다는 안내를 표시한다.
+- 공통 재생, 일시정지, 처음부터, 모두 지우기와 session별 native video control/remove를 제공한다.
 
 ## Playback 데이터 규격
 
@@ -409,6 +413,8 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] Record tab 주요 label, 상태, 안내 및 오류 문구 한국어화
 - [x] 신호/녹화/재생 tab, TGAM 연결 및 Playback action button 한국어화
 - [x] camera 사양에서 녹화하지 않는 오디오 꺼짐 항목 제거
+- [x] Playback 불러오기 안내에 TXT/NDJSON/WebM 세 파일 요구사항 표시
+- [x] `전체 재생`을 `재생`, `녹화 불러오기`를 `녹화 파일 불러오기`로 변경
 - [x] 1,440 x 900 및 500 x 900 Playback/Record overflow와 responsive stack 확인
 - [x] `public/` 전용 GitHub Pages Actions workflow 추가
 

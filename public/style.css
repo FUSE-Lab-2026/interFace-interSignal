@@ -387,8 +387,25 @@ body[data-view="playback"] .serial-button {
 
 .playback-actions {
   display: flex;
+  align-items: flex-start;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.playback-load-action {
+  width: min(190px, 100%);
+  display: grid;
+  gap: 4px;
+}
+
+.playback-load-action .playback-button {
+  width: 100%;
+}
+
+.playback-load-help {
+  color: #898c8d;
+  font-size: 9px;
+  line-height: 1.4;
 }
 
 .playback-card-options {

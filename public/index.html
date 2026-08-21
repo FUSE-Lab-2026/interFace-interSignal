@@ -96,8 +96,11 @@
     <section id="playback-view" class="playback-view" hidden>
       <header class="playback-toolbar">
         <div class="playback-actions">
-          <button id="add-playback" class="playback-button" type="button">녹화 불러오기</button>
-          <button id="play-all" class="playback-button" type="button" disabled>전체 재생</button>
+          <div class="playback-load-action">
+            <button id="add-playback" class="playback-button" type="button">녹화 파일 불러오기</button>
+            <span class="playback-load-help">한 세션의 TXT, NDJSON, WebM 파일을 모두 선택해 주세요.</span>
+          </div>
+          <button id="play-all" class="playback-button" type="button" disabled>재생</button>
           <button id="pause-playback" class="playback-button" type="button" disabled>일시정지</button>
           <button id="restart-playback" class="playback-button" type="button" disabled>처음부터</button>
           <button id="clear-playback" class="playback-button" type="button" disabled>모두 지우기</button>

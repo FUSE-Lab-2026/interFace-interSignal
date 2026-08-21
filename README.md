@@ -99,10 +99,10 @@ a slightly different actual video bitrate than requested.
 ## 재생 tab
 
 `재생` or `#playback` compares the recorded camera and raw EEG in the
-browser. Press **녹화 불러오기** and select each matching camera WebM and raw
-EEG TXT pair together. Include the matching `-tgam-packets.ndjson` when native
-Attention/Meditation playback is needed. The shared filename stem identifies
-the session.
+browser. Press **녹화 파일 불러오기** and select the matching camera WebM, raw
+EEG TXT, and packet NDJSON files together. All three files are requested so the
+raw waveform, native Attention/Meditation, and contact-quality gating are all
+available. The shared filename stem identifies the session.
 
 - Up to three sessions can be loaded at once.
 - Each session displays camera, raw EEG, and one selected signal card.
@@ -118,7 +118,7 @@ the session.
   coordinate.
 - The graph shows a moving four-second window: three seconds before the current
   time and up to one second ahead.
-- **전체 재생**, **일시정지**, and **처음부터** control every loaded session; each
+- **재생**, **일시정지**, and **처음부터** control every loaded session; each
   native video control can still be used independently.
 - Playback applies no filtering, interpolation, or resampling to the TXT values;
   sample-clock reconstruction changes only their display positions.

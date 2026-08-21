@@ -89,9 +89,11 @@ assert(styles.includes("minmax(180px, 0.2133fr)"));
 for (const text of ["녹화", "카메라 켜기", "저장 폴더 선택", "30초 녹화", "1분 녹화", "녹화 중지"]) {
   assert(html.includes(text), `${text} Korean record label is missing`);
 }
-for (const text of ["신호", "재생", "녹화 불러오기", "전체 재생", "일시정지", "처음부터", "모두 지우기"]) {
+for (const text of ["신호", "재생", "녹화 파일 불러오기", "일시정지", "처음부터", "모두 지우기"]) {
   assert(html.includes(text), `${text} Korean button label is missing`);
 }
+assert(html.includes("한 세션의 TXT, NDJSON, WebM 파일을 모두 선택해 주세요."));
+assert(!html.includes("전체 재생"));
 for (const text of ["TGAM 연결", "연결 해제", "연결 중...", "TGAM 다시 연결"]) {
   assert(sketch.includes(text), `${text} Korean serial button label is missing`);
 }

@@ -87,7 +87,12 @@ eye-state classifier and does not directly measure eye movement.
 - Vertical display range: fixed at -2,048 to 2,048
 - Values outside that range are visually clipped at the card boundary; the stored
   raw values are not modified.
-- The latest raw integer is shown in the card corner.
+- The latest raw integer is shown in the card corner. It is a signed ADC count,
+  not a normalized score: its sign indicates instantaneous voltage direction
+  relative to the TGAM reference and its magnitude indicates deflection.
+- Nominal voltage conversion is approximately `raw * 0.2197265625 uV`, so a
+  displayed count of `1000` is approximately `220 uV`. It is not a calibrated
+  clinical voltage measurement.
 
 ## Absolute band power
 
@@ -259,7 +264,7 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
 
 ### Multi-session behavior
 
-- `전체 재생`, `일시정지`, and `처음부터` operate on every loaded video.
+- `재생`, `일시정지`, and `처음부터` operate on every loaded video.
 - Camera and EEG synchronization is maintained within each recording because the
   EEG cursor reads that recording's video clock.
 - Up to three recordings are rendered as vertically stacked comparison rows.
