@@ -97,7 +97,7 @@ for (const text of ["녹화", "카메라 켜기", "저장 폴더 선택", "30초
 for (const text of ["신호", "재생", "녹화 파일 불러오기", "일시정지", "처음부터", "모두 지우기"]) {
   assert(html.includes(text), `${text} Korean button label is missing`);
 }
-assert(html.includes("TXT, NDJSON, WebM이 포함된 ZIP 파일을 업로드해 주세요."));
+assert(html.includes("ZIP 파일 올려주세요"));
 assert(html.includes("./session-zip.js"));
 assert(!html.includes("전체 재생"));
 for (const text of ["TGAM 연결", "연결 해제", "연결 중...", "TGAM 다시 연결"]) {

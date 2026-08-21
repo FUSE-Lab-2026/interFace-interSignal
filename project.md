@@ -334,8 +334,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
   Raw EEG는 기존 896 px의 정확히 2/3이며 줄어든 299 px을 새 카드가 사용한다.
 - 상단 `03`, `04`, `05`, `06` segmented control은 모든 session의 세 번째 slot을 함께 변경한다.
 - Playback row는 최대 3개까지 세로로 쌓이며 narrow viewport에서는 세 pane을 1열로 배치한다.
-- `녹화 파일 불러오기` 아래에 TXT, NDJSON, WebM을 포함한 ZIP을 업로드하라는
-  안내를 표시한다.
+- `녹화 파일 불러오기` 아래에 `ZIP 파일 올려주세요` 안내를 표시한다.
 - 공통 재생, 일시정지, 처음부터, 모두 지우기와 session별 native video control/remove를 제공한다.
 
 ## Playback 데이터 규격
@@ -433,7 +432,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] Record tab 주요 label, 상태, 안내 및 오류 문구 한국어화
 - [x] 신호/녹화/재생 tab, TGAM 연결 및 Playback action button 한국어화
 - [x] camera 사양에서 녹화하지 않는 오디오 꺼짐 항목 제거
-- [x] Playback 불러오기 안내를 TXT/NDJSON/WebM 포함 ZIP 업로드 문구로 변경
+- [x] Playback 불러오기 안내를 `ZIP 파일 올려주세요`로 간소화
 - [x] `전체 재생`을 `재생`, `녹화 불러오기`를 `녹화 파일 불러오기`로 변경
 - [x] 네 component를 단일 `.eegsession.zip`으로 묶고 CRC 검증 후 임시 파일 삭제
 - [x] Playback에서 최대 3개 session ZIP을 browser-only로 추출해 기존 pair parser에 전달
