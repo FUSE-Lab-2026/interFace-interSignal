@@ -58,7 +58,7 @@ assert(sketch.includes("const getRecordPanelBounds ="));
 assert(!sketch.includes('cardsById.get("bands")'));
 assert(!sketch.includes('cardsById.get("esense")'));
 assert(styles.includes("width: min(100%, 190px)"));
-assert(styles.includes("grid-template-columns: repeat(4, minmax(0, 1fr))"));
+assert(styles.includes("grid-template-columns: repeat(3, minmax(0, 1fr))"));
 for (const id of [
   "playback-view",
   "add-playback",
@@ -89,6 +89,13 @@ assert(styles.includes("minmax(180px, 0.2133fr)"));
 for (const text of ["녹화", "카메라 켜기", "저장 폴더 선택", "30초 녹화", "1분 녹화", "녹화 중지"]) {
   assert(html.includes(text), `${text} Korean record label is missing`);
 }
+for (const text of ["신호", "재생", "녹화 불러오기", "전체 재생", "일시정지", "처음부터", "모두 지우기"]) {
+  assert(html.includes(text), `${text} Korean button label is missing`);
+}
+for (const text of ["TGAM 연결", "연결 해제", "연결 중...", "TGAM 다시 연결"]) {
+  assert(sketch.includes(text), `${text} Korean serial button label is missing`);
+}
+assert(!html.includes("<dt>오디오</dt>"));
 assert(recorder.includes('recording: "녹화 중"'));
 
 console.log("Standalone page structure tests passed");

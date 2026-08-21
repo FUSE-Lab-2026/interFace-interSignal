@@ -148,7 +148,7 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
 
 ### Shared source
 
-- `Signals` and `Record` are views within one page and share one
+- `신호` and `녹화` are views within one page and share one
   `TGAMSerialSource` instance.
 - A second browser page does not independently open the same serial port.
 - The parser emits a frame callback for every checksum-valid physical TGAM frame.
@@ -214,7 +214,7 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
 ### Stop behavior
 
 - Reaching 30 seconds or 1 minute finalizes every stream and writes the manifest.
-- Manual Stop can finalize a session before its planned duration.
+- `녹화 중지` can finalize a session before its planned duration.
 - Serial disconnect, camera end, video error, or file-write error initiates stop.
 - Closing or reloading the page while recording triggers a browser warning.
 - A browser/OS crash before writable streams close can leave the current session
@@ -259,7 +259,7 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
 
 ### Multi-session behavior
 
-- `Play all`, `Pause`, and `Restart` operate on every loaded video.
+- `전체 재생`, `일시정지`, and `처음부터` operate on every loaded video.
 - Camera and EEG synchronization is maintained within each recording because the
   EEG cursor reads that recording's video clock.
 - Up to three recordings are rendered as vertically stacked comparison rows.

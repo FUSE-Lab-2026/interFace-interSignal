@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,33 +10,33 @@
 </head>
 <body data-view="signals">
   <main id="signal-guessing">
-    <nav class="app-tabs" aria-label="Application views">
-      <button class="app-tab is-active" type="button" data-view-button="signals" aria-selected="true">Signals</button>
+    <nav class="app-tabs" aria-label="화면 선택">
+      <button class="app-tab is-active" type="button" data-view-button="signals" aria-selected="true">신호</button>
       <button class="app-tab" type="button" data-view-button="record" aria-selected="false">녹화</button>
-      <button class="app-tab" type="button" data-view-button="playback" aria-selected="false">Playback</button>
+      <button class="app-tab" type="button" data-view-button="playback" aria-selected="false">재생</button>
     </nav>
-    <nav class="panel-toggles" aria-label="Visible signal cards">
-      <label class="panel-toggle" aria-label="Toggle signal card 01">
+    <nav class="panel-toggles" aria-label="표시할 신호 카드">
+      <label class="panel-toggle" aria-label="신호 카드 01 표시 전환">
         <input type="checkbox" data-card-id="contact" checked />
         <span>01</span>
       </label>
-      <label class="panel-toggle" aria-label="Toggle signal card 02">
+      <label class="panel-toggle" aria-label="신호 카드 02 표시 전환">
         <input type="checkbox" data-card-id="raw" />
         <span>02</span>
       </label>
-      <label class="panel-toggle" aria-label="Toggle signal card 03">
+      <label class="panel-toggle" aria-label="신호 카드 03 표시 전환">
         <input type="checkbox" data-card-id="bands" />
         <span>03</span>
       </label>
-      <label class="panel-toggle" aria-label="Toggle signal card 04">
+      <label class="panel-toggle" aria-label="신호 카드 04 표시 전환">
         <input type="checkbox" data-card-id="esense" />
         <span>04</span>
       </label>
-      <label class="panel-toggle" aria-label="Toggle signal card 05">
+      <label class="panel-toggle" aria-label="신호 카드 05 표시 전환">
         <input type="checkbox" data-card-id="movement" />
         <span>05</span>
       </label>
-      <label class="panel-toggle" aria-label="Toggle signal card 06">
+      <label class="panel-toggle" aria-label="신호 카드 06 표시 전환">
         <input type="checkbox" data-card-id="eyes" />
         <span>06</span>
       </label>
@@ -55,7 +55,6 @@
           <div><dt>해상도</dt><dd>134 x 100</dd></div>
           <div><dt>프레임</dt><dd>8 FPS</dd></div>
           <div><dt>영상</dt><dd>50 kbps</dd></div>
-          <div><dt>오디오</dt><dd>꺼짐</dd></div>
         </dl>
       </div>
 
@@ -97,17 +96,17 @@
     <section id="playback-view" class="playback-view" hidden>
       <header class="playback-toolbar">
         <div class="playback-actions">
-          <button id="add-playback" class="playback-button" type="button">Add recordings</button>
-          <button id="play-all" class="playback-button" type="button" disabled>Play all</button>
-          <button id="pause-playback" class="playback-button" type="button" disabled>Pause</button>
-          <button id="restart-playback" class="playback-button" type="button" disabled>Restart</button>
-          <button id="clear-playback" class="playback-button" type="button" disabled>Clear</button>
+          <button id="add-playback" class="playback-button" type="button">녹화 불러오기</button>
+          <button id="play-all" class="playback-button" type="button" disabled>전체 재생</button>
+          <button id="pause-playback" class="playback-button" type="button" disabled>일시정지</button>
+          <button id="restart-playback" class="playback-button" type="button" disabled>처음부터</button>
+          <button id="clear-playback" class="playback-button" type="button" disabled>모두 지우기</button>
         </div>
-        <div class="playback-card-options" role="group" aria-label="Additional signal card">
-          <button class="playback-card-option is-active" type="button" data-playback-card="bands" aria-pressed="true" title="03 Absolute band power">03</button>
-          <button class="playback-card-option" type="button" data-playback-card="esense" aria-pressed="false" title="04 Attention / Meditation">04</button>
-          <button class="playback-card-option" type="button" data-playback-card="movement" aria-pressed="false" title="05 Movement">05</button>
-          <button class="playback-card-option" type="button" data-playback-card="eyes" aria-pressed="false" title="06 Eyes Closed">06</button>
+        <div class="playback-card-options" role="group" aria-label="추가 신호 카드">
+          <button class="playback-card-option is-active" type="button" data-playback-card="bands" aria-pressed="true" title="03 절대 밴드 파워">03</button>
+          <button class="playback-card-option" type="button" data-playback-card="esense" aria-pressed="false" title="04 집중도 / 명상도">04</button>
+          <button class="playback-card-option" type="button" data-playback-card="movement" aria-pressed="false" title="05 움직임">05</button>
+          <button class="playback-card-option" type="button" data-playback-card="eyes" aria-pressed="false" title="06 눈 감음">06</button>
         </div>
         <output id="playback-count" class="playback-count">0 / 3</output>
         <input id="playback-files" type="file" accept=".txt,.ndjson,.webm,video/webm,application/x-ndjson" multiple hidden />

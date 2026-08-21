@@ -76,7 +76,7 @@ const signalGuessingSketch = (p) => {
     p.pixelDensity(Math.min(window.devicePixelRatio || 1, 2));
     p.textFont("monospace");
 
-    connectButton = p.createButton("Connect TGAM");
+    connectButton = p.createButton("TGAM 연결");
     connectButton.parent("signal-guessing");
     connectButton.addClass("serial-button");
     connectButton.mousePressed(toggleSerial);
@@ -132,13 +132,13 @@ const signalGuessingSketch = (p) => {
   const updateConnectButton = () => {
     const status = TGAMSerialSource.getStatus();
     const states = {
-      connected: ["Disconnect", false],
-      connecting: ["Connecting...", true],
-      disconnecting: ["Disconnecting...", true],
-      unsupported: ["Serial unavailable", true],
-      error: ["Retry TGAM", false],
+      connected: ["연결 해제", false],
+      connecting: ["연결 중...", true],
+      disconnecting: ["연결 해제 중...", true],
+      unsupported: ["시리얼 사용 불가", true],
+      error: ["TGAM 다시 연결", false],
     };
-    const [label, disabled] = states[status] || ["Connect TGAM", false];
+    const [label, disabled] = states[status] || ["TGAM 연결", false];
     connectButton.html(label);
     connectButton.elt.disabled = disabled;
     connectButton.elt.title = TGAMSerialSource.getLastError();

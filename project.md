@@ -3,7 +3,7 @@
 ## 문서 정보
 
 - 마지막 업데이트: 2026-08-21
-- 현재 단계: Playback 카드 03-06 선택과 Record 한국어 UI 구현 완료, 실제 TGAM/카메라 통합 검증 전
+- 현재 단계: 신호/녹화/재생 전체 버튼 한국어화와 재생 카드 03-06 선택 구현 완료, 실제 TGAM/카메라 통합 검증 전
 - 저장소: `FUSE-Lab-2026/interFace-interSignal`
 - 기준 브랜치: `main`
 - 문서 역할: 데이터 규격, MVP 범위, 구현 상태, 검증 상태를 관리하는 단일 기준 문서
@@ -299,7 +299,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - serial 연결 버튼과 상태, raw sample rate, checksum failure는 항상 header에 표시
 - header 우측 아래에 native Poor Signal을 `TGAM Q q/200`으로 표시
 - live 연결에서 첫 Poor Signal packet을 받기 전에는 `TGAM Q --/200` 표시
-- 상단 `Signals`, `Record`, `Playback` tab으로 view 전환
+- 상단 `신호`, `녹화`, `재생` tab으로 view 전환
 - `#signals`, `#record`, `#playback` hash URL로 각 view 직접 접근
 - serial connect button은 Signals와 Record에서 같은 source를 제어하고 Playback에서는 숨긴다.
 - Record view는 Signals의 시각 언어를 이어받는 4-card grid다.
@@ -308,8 +308,9 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - 620 px 이상에서는 최대 944 px 너비의 가운데 정렬 2 x 2 grid를 사용한다.
 - 619 px 이하에서는 Signal Contact, Raw EEG, camera, recorder 순서로 1열 배치한다.
 - Record view에서는 Movement, Eyes Closed, Band Power, Attention/Meditation을 표시하지 않는다.
-- recorder card는 folder, 30초/1분 시작, Stop, 남은 시간, frame/raw count를 표시한다.
-- Record tab, camera 상태, folder/record control, status, 안내/오류 문구는 한국어로 표시한다.
+- recorder card는 folder, 30초/1분 시작, 녹화 중지, 남은 시간, frame/raw count를 표시한다.
+- 모든 tab, TGAM 연결, camera, folder/record, Playback action button과 상태/안내/오류 문구는 한국어로 표시한다.
+- camera card는 녹화하지 않는 audio 항목을 별도로 표시하지 않으며 해상도, 프레임, 영상 bitrate만 표시한다.
 - camera preview는 최대 190 px 너비로 제한하고 recorder status는 1행 4열로 표시해
   300 px 높이 card와 짧고 넓은 browser viewport에서도 내부 요소가 넘치지 않게 한다.
 - Playback은 session별 camera, raw EEG, 선택 카드 하나를 한 row에 표시한다.
@@ -317,7 +318,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
   Raw EEG는 기존 896 px의 정확히 2/3이며 줄어든 299 px을 새 카드가 사용한다.
 - 상단 `03`, `04`, `05`, `06` segmented control은 모든 session의 세 번째 slot을 함께 변경한다.
 - Playback row는 최대 3개까지 세로로 쌓이며 narrow viewport에서는 세 pane을 1열로 배치한다.
-- 공통 Play all, Pause, Restart, Clear와 session별 native video control/remove를 제공한다.
+- 공통 전체 재생, 일시정지, 처음부터, 모두 지우기와 session별 native video control/remove를 제공한다.
 
 ## Playback 데이터 규격
 
@@ -406,6 +407,8 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] Playback 카드 03-06 global selector와 offline feature/NDJSON A/M 구현
 - [x] 실제 2026-08-20 session 8초에서 카드 03과 native A=7/M=47 render 확인
 - [x] Record tab 주요 label, 상태, 안내 및 오류 문구 한국어화
+- [x] 신호/녹화/재생 tab, TGAM 연결 및 Playback action button 한국어화
+- [x] camera 사양에서 녹화하지 않는 오디오 꺼짐 항목 제거
 - [x] 1,440 x 900 및 500 x 900 Playback/Record overflow와 responsive stack 확인
 - [x] `public/` 전용 GitHub Pages Actions workflow 추가
 

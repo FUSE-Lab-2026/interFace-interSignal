@@ -30,7 +30,7 @@ Requirements:
 npm start
 ```
 
-Open `http://localhost:3000`, press **Connect TGAM**, and select the TGAM serial
+Open `http://localhost:3000`, press **TGAM 연결**, and select the TGAM serial
 port. Keep other TGAM/serial applications closed because one process should own
 the port at a time.
 
@@ -60,21 +60,21 @@ electrode contact. Raw EEG displays the incoming stream, Absolute Band Power is
 calculated from that stream in `uV^2`, and Attention/Meditation displays native
 TGAM values.
 
-## Record tab
+## 녹화 tab
 
-The `Record` tab uses the same browser-owned TGAM connection as the signal cards,
+The `녹화` tab uses the same browser-owned TGAM connection as the signal cards,
 so the serial port is opened only once. Recording requires desktop Chrome or
 Chromium.
 
 The Record controls, camera states, recording status, and error guidance are
 shown in Korean for workshop operation.
 
-1. Press **Connect TGAM** and select the serial port.
-2. Open `Record` or visit `http://localhost:3000/#record`.
-3. Press **Choose Folder** and grant write access.
-4. Press **Enable Camera** and grant camera access.
-5. Press **30 s** or **1 min**. The session stops and finalizes automatically;
-   **Stop** remains available for an early finish.
+1. Press **TGAM 연결** and select the serial port.
+2. Open `녹화` or visit `http://localhost:3000/#record`.
+3. Press **저장 폴더 선택** and grant write access.
+4. Press **카메라 켜기** and grant camera access.
+5. Press **30초 녹화** or **1분 녹화**. The session stops and finalizes
+   automatically; **녹화 중지** remains available for an early finish.
 
 The Record view is a compact continuation of the signal grid. It carries over
 only Signal Contact and Raw EEG, then adds one camera card and one recording
@@ -96,10 +96,10 @@ preview frame. The recorded stream is independently downsampled through a
 camera busy in another app are shown as distinct errors. The browser may choose
 a slightly different actual video bitrate than requested.
 
-## Playback tab
+## 재생 tab
 
-`Playback` or `#playback` compares the recorded camera and raw EEG in the
-browser. Press **Add recordings** and select each matching camera WebM and raw
+`재생` or `#playback` compares the recorded camera and raw EEG in the
+browser. Press **녹화 불러오기** and select each matching camera WebM and raw
 EEG TXT pair together. Include the matching `-tgam-packets.ndjson` when native
 Attention/Meditation playback is needed. The shared filename stem identifies
 the session.
@@ -118,7 +118,7 @@ the session.
   coordinate.
 - The graph shows a moving four-second window: three seconds before the current
   time and up to one second ahead.
-- **Play all**, **Pause**, and **Restart** control every loaded session; each
+- **전체 재생**, **일시정지**, and **처음부터** control every loaded session; each
   native video control can still be used independently.
 - Playback applies no filtering, interpolation, or resampling to the TXT values;
   sample-clock reconstruction changes only their display positions.

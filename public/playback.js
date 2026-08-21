@@ -313,8 +313,8 @@ const TGAMPlayback = (() => {
     remove.className = "playback-remove";
     remove.type = "button";
     remove.textContent = "X";
-    remove.title = `Remove ${pair.key}`;
-    remove.setAttribute("aria-label", `Remove ${pair.key}`);
+    remove.title = `${pair.key} 삭제`;
+    remove.setAttribute("aria-label", `${pair.key} 삭제`);
     header.append(name, remove);
 
     const pairLayout = document.createElement("div");
