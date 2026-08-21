@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const publicPath = path.join(__dirname, "..", "public");
+const rootHtml = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 const html = fs.readFileSync(path.join(publicPath, "index.html"), "utf8");
 const sketch = fs.readFileSync(path.join(publicPath, "sketch.js"), "utf8");
 const recorder = fs.readFileSync(path.join(publicPath, "recorder.js"), "utf8");
@@ -104,5 +105,7 @@ for (const text of ["TGAM 연결", "연결 해제", "연결 중...", "TGAM 다�
 }
 assert(!html.includes("<dt>오디오</dt>"));
 assert(recorder.includes('recording: "녹화 중"'));
+assert(rootHtml.includes('new URL("./public/", window.location.href)'));
+assert(rootHtml.includes("target.hash = window.location.hash"));
 
 console.log("Standalone page structure tests passed");

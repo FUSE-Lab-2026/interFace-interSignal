@@ -89,6 +89,8 @@ Node는 `public/`을 `localhost`에 제공하는 정적 서버 역할만 한다.
 - trigger: `main`의 `public/**` 또는 workflow 변경 push, 수동 `workflow_dispatch`
 - runtime: 정적 HTML/CSS/JavaScript와 p5.js CDN; `server.js`는 배포하지 않음
 - browser API: GitHub Pages HTTPS origin에서 Web Serial, camera, File System Access API 사용
+- branch `main / root` Pages 설정에서도 README 대신 앱이 열리도록 root `index.html`이
+  hash를 보존해 `public/`으로 redirect
 
 ## 데이터 규격
 
@@ -383,6 +385,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 | `public/playback-core.js` | file pairing, TXT/NDJSON parse, playback window와 offline 카드 03/05/06 계산 |
 | `public/playback.js` | 최대 3개 video/raw EEG/선택 카드 playback rendering |
 | `public/style.css` | Signals, Record, Playback view style |
+| `index.html` | branch-based GitHub Pages에서 hash를 보존해 `public/` app으로 redirect |
 | `server.js` | dependency-free localhost static server |
 | `PROCESSING.md` | 계산과 시각 매핑의 상세 변경 기록 |
 | `tests/` | parser, mock Web Serial, page structure 검증 |

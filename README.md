@@ -17,6 +17,10 @@ hosted HTTPS version can use Web Serial, camera permission, local recording, and
 local playback in supported desktop Chromium browsers. `server.js` is used only
 for local development and is not part of the hosted runtime.
 
+For repositories configured as `Deploy from a branch: main / root`, the root
+`index.html` preserves the URL hash and redirects to the same app under
+`public/` instead of allowing Jekyll to render this README.
+
 ## Run
 
 Requirements:
