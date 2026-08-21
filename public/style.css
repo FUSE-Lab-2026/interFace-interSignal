@@ -171,7 +171,7 @@ body[data-view="playback"] .serial-button {
 
 .camera-panel {
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 1;
   padding: 18px;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto;
@@ -675,7 +675,7 @@ body[data-view="playback"] .serial-button {
 
   .camera-panel {
     grid-column: 1;
-    grid-row: 3;
+    grid-row: 1;
     padding: 12px;
   }
 

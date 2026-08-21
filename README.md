@@ -81,10 +81,10 @@ shown in Korean for workshop operation.
 5. Press **30초 녹화** or **1분 녹화**. The session stops and finalizes
    automatically; **녹화 중지** remains available for an early finish.
 
-The Record view is a compact continuation of the signal grid. It carries over
-only Signal Contact and Raw EEG, then adds one camera card and one recording
-control card. The four cards form a centered 2 x 2 grid on larger screens and
-stack in the same order on narrow screens.
+The Record view is a compact continuation of the signal grid. Its first row
+places Camera beside Raw EEG for direct visual comparison; the second row holds
+Signal Contact and the recording controls. The four cards form a centered 2 x 2
+grid on larger screens and stack in that order on narrow screens.
 
 Each completed session leaves one file in the selected folder:
 

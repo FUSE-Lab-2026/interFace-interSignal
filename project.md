@@ -324,10 +324,10 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - `#signals`, `#record`, `#playback` hash URL로 각 view 직접 접근
 - serial connect button은 Signals와 Record에서 같은 source를 제어하고 Playback에서는 숨긴다.
 - Record view는 Signals의 시각 언어를 이어받는 4-card grid다.
-- 첫 행에는 Signal Contact와 Raw EEG만 이어서 표시한다.
-- 둘째 행에는 같은 card 크기의 camera 카드 03과 compact recorder 카드 04를 표시한다.
+- 첫 행에는 camera 카드 01과 Raw EEG 카드 02를 나란히 표시한다.
+- 둘째 행에는 Signal Contact 카드 03과 compact recorder 카드 04를 표시한다.
 - 620 px 이상에서는 최대 944 px 너비의 가운데 정렬 2 x 2 grid를 사용한다.
-- 619 px 이하에서는 Signal Contact, Raw EEG, camera, recorder 순서로 1열 배치한다.
+- 619 px 이하에서는 camera, Raw EEG, Signal Contact, recorder 순서로 1열 배치한다.
 - Record view에서는 Movement, Eyes Closed, Band Power, Attention/Meditation을 표시하지 않는다.
 - recorder card는 folder, 30초/1분 시작, 녹화 중지, 남은 시간, frame/raw count를 표시한다.
 - 모든 tab, TGAM 연결, camera, folder/record, Playback action button과 상태/안내/오류 문구는 한국어로 표시한다.
@@ -451,6 +451,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] EEG-only ZIP의 `video.enabled: false` manifest와 3-entry archive 자동 검증
 - [x] Playback에서 EEG-only session의 synthetic clock, seek slider, `카메라 없음` 상태 구현
 - [x] 실제 30초 raw/NDJSON EEG-only ZIP browser load와 0.0초에서 1.8초 재생 진행 확인
+- [x] Record 카드 순서를 Camera, Raw EEG, Signal Contact, recorder로 변경
 - [x] 1,440 x 900 및 500 x 900 Playback/Record overflow와 responsive stack 확인
 - [x] `public/` 전용 GitHub Pages Actions workflow 추가
 

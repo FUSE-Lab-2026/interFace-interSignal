@@ -58,6 +58,8 @@ assert(recorder.includes("TGAMSessionZip.createArchive(entries)"));
 assert(recorder.includes("TGAMSessionZip.extractArchive(savedArchive)"));
 assert(sketch.includes('cardsById.get("contact")'));
 assert(sketch.includes('cardsById.get("raw")'));
+assert(sketch.includes('contactCard ? { ...contactCard, number: "03" } : null'));
+assert(styles.includes(".camera-panel {\n  grid-column: 1;\n  grid-row: 1;"));
 assert(sketch.includes("const getRecordPanelBounds ="));
 assert(!sketch.includes('cardsById.get("bands")'));
 assert(!sketch.includes('cardsById.get("esense")'));

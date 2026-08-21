@@ -437,10 +437,11 @@ const signalGuessingSketch = (p) => {
     const allCards = getCards();
     if (isRecordView()) {
       const cardsById = new Map(allCards.map((card) => [card.id, card]));
+      const contactCard = cardsById.get("contact");
       const recordSlots = [
-        cardsById.get("contact"),
-        cardsById.get("raw"),
         null,
+        cardsById.get("raw"),
+        contactCard ? { ...contactCard, number: "03" } : null,
         null,
       ];
       const panelBounds = getRecordPanelBounds();
