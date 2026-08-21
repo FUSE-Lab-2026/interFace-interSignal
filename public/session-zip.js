@@ -7,6 +7,7 @@
   const decoder = new TextDecoder("utf-8", { fatal: true });
   const UTF8_FLAG = 0x0800;
   const STORE_METHOD = 0;
+  const DEFLATE_METHOD = 8;
 
   const CRC_TABLE = Uint32Array.from({ length: 256 }, (_, value) => {
     let crc = value;
@@ -36,6 +37,35 @@
       throw new Error(`ZIP 항목 이름이 올바르지 않습니다: ${value || "(비어 있음)"}`);
     }
     return value;
+  };
+
+  const extractedName = (name) => {
+    const value = String(name || "").replaceAll("\\", "/");
+    if (!value || value.includes("\0") || value.startsWith("/") || /^[A-Za-z]:\//.test(value)) {
+      throw new Error(`ZIP 항목 경로가 올바르지 않습니다: ${value || "(비어 있음)"}`);
+    }
+    const parts = value.split("/").filter(Boolean);
+    if (parts.some((part) => part === "." || part === "..")) {
+      throw new Error(`ZIP 항목 경로가 올바르지 않습니다: ${value}`);
+    }
+    if (!parts.length || value.endsWith("/")) return null;
+    if (parts.includes("__MACOSX")) return null;
+    const nameOnly = parts[parts.length - 1];
+    if (nameOnly === ".DS_Store" || nameOnly.startsWith("._")) return null;
+    return nameOnly;
+  };
+
+  const inflateRaw = async (compressed, name) => {
+    if (typeof DecompressionStream !== "function") {
+      throw new Error("이 브라우저에서는 압축된 ZIP 파일을 열 수 없습니다.");
+    }
+    try {
+      const stream = new Blob([compressed]).stream()
+        .pipeThrough(new DecompressionStream("deflate-raw"));
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    } catch (_) {
+      throw new Error(`ZIP 압축을 풀 수 없습니다: ${name}`);
+    }
   };
 
   const dosTimestamp = (date = new Date()) => {
@@ -136,6 +166,9 @@
     const centralSize = view.getUint32(endOffset + 12, true);
     const centralOffset = view.getUint32(endOffset + 16, true);
     if (diskNumber !== 0 || centralDisk !== 0) throw new Error("분할 ZIP 파일은 지원하지 않습니다.");
+    if (entryCount === 0xffff || centralSize === 0xffffffff || centralOffset === 0xffffffff) {
+      throw new Error("Zip64 파일은 지원하지 않습니다.");
+    }
     if (centralOffset + centralSize > bytes.length) throw new Error("ZIP 파일 구조가 손상되었습니다.");
 
     const entries = [];
@@ -158,8 +191,12 @@
       const nameEnd = nameStart + nameLength;
       if (nameEnd > bytes.length) throw new Error("ZIP 파일 이름이 손상되었습니다.");
       if (flags & 1) throw new Error("암호화된 ZIP 파일은 지원하지 않습니다.");
-      if (method !== STORE_METHOD) throw new Error("이 ZIP 압축 방식은 지원하지 않습니다.");
-      const name = safeName(decoder.decode(bytes.subarray(nameStart, nameEnd)));
+      const name = extractedName(decoder.decode(bytes.subarray(nameStart, nameEnd)));
+      offset = nameEnd + extraLength + commentLength;
+      if (name === null) continue;
+      if (method !== STORE_METHOD && method !== DEFLATE_METHOD) {
+        throw new Error("이 ZIP 압축 방식은 지원하지 않습니다.");
+      }
       if (seenNames.has(name)) throw new Error(`ZIP에 같은 이름의 파일이 있습니다: ${name}`);
       seenNames.add(name);
 
@@ -168,15 +205,19 @@
       }
       const localNameLength = view.getUint16(localOffset + 26, true);
       const localExtraLength = view.getUint16(localOffset + 28, true);
+      if (view.getUint16(localOffset + 8, true) !== method) {
+        throw new Error(`ZIP 압축 정보가 일치하지 않습니다: ${name}`);
+      }
       const dataStart = localOffset + 30 + localNameLength + localExtraLength;
       const dataEnd = dataStart + compressedSize;
-      if (dataEnd > bytes.length || compressedSize !== uncompressedSize) {
+      if (dataEnd > bytes.length) {
         throw new Error(`ZIP 파일 크기가 올바르지 않습니다: ${name}`);
       }
-      const data = bytes.slice(dataStart, dataEnd);
+      const compressed = bytes.slice(dataStart, dataEnd);
+      const data = method === STORE_METHOD ? compressed : await inflateRaw(compressed, name);
+      if (data.length !== uncompressedSize) throw new Error(`ZIP 파일 크기가 올바르지 않습니다: ${name}`);
       if (crc32(data) !== expectedCrc) throw new Error(`ZIP 파일 검증에 실패했습니다: ${name}`);
       entries.push({ name, data });
-      offset = nameEnd + extraLength + commentLength;
     }
     return entries;
   };

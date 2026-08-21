@@ -340,7 +340,9 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 ## Playback 데이터 규격
 
 - 기본 입력: recorder가 만든 `.eegsession.zip`, 최대 3개
-- ZIP 처리: browser memory에서 stored entry 추출 및 CRC-32 검증, server 전송 없음
+- ZIP 처리: browser memory에서 Store 또는 Deflate entry 추출 및 CRC-32 검증, server 전송 없음
+- 수동 ZIP: root 또는 한 folder 안의 component 허용, Finder `__MACOSX`/`._*`/`.DS_Store` 무시
+- 미지원: encrypted, Zip64, split archive, unsafe path, 중복 basename, Store/Deflate 외 방식
 - ZIP 내부 필수 pair: camera WebM, raw EEG TXT, packet NDJSON
 - legacy 입력: 아래 suffix의 loose files도 계속 지원
 - pair key: `-camera-100p.webm` 또는 `-camera-240p.webm`, `-raw-eeg.txt`,
@@ -380,7 +382,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 | `public/tabs.js` | hash 기반 in-app view 전환 |
 | `public/recorder-core.js` | 녹화 상수, file name, frame/raw serialization |
 | `public/recorder.js` | 폴더, camera, TGAM frame, file writer, stop/finalize lifecycle |
-| `public/session-zip.js` | dependency-free stored ZIP 생성, CRC-32 검증, browser extraction |
+| `public/session-zip.js` | dependency-free stored ZIP 생성, Store/Deflate 추출, CRC-32 및 path 검증 |
 | `public/playback-core.js` | file pairing, TXT/NDJSON parse, playback window와 offline 카드 03/05/06 계산 |
 | `public/playback.js` | 최대 3개 video/raw EEG/선택 카드 playback rendering |
 | `public/style.css` | Signals, Record, Playback view style |
@@ -437,6 +439,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] 네 component를 단일 `.eegsession.zip`으로 묶고 CRC 검증 후 임시 파일 삭제
 - [x] Playback에서 최대 3개 session ZIP을 browser-only로 추출해 기존 pair parser에 전달
 - [x] legacy loose TXT/NDJSON/WebM Playback 입력 유지
+- [x] Finder/일반 ZIP 도구의 Deflate 및 nested folder 입력 지원
 - [x] 1,440 x 900 및 500 x 900 Playback/Record overflow와 responsive stack 확인
 - [x] `public/` 전용 GitHub Pages Actions workflow 추가
 
@@ -492,8 +495,8 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
   불완전할 수 있다.
 - ZIP finalization은 네 component와 archive Blob을 일시적으로 memory에 올린다. 현재
   30초/1분 및 100p video 범위에서는 허용하지만 실제 1분 session에서 memory를 확인해야 한다.
-- 앱이 만드는 ZIP은 dependency-free stored entry만 사용한다. 다른 도구에서 만든
-  deflate/Zip64/encrypted archive는 Playback에서 지원하지 않는다.
+- 앱이 만드는 ZIP은 dependency-free stored entry를 사용한다. Playback은 Store와
+  Deflate를 읽지만 Zip64/encrypted/split archive는 지원하지 않는다.
 - MediaRecorder의 실제 codec/bitrate는 browser가 요청과 다르게 선택할 수 있다.
 - Playback file pairing은 현재 filename suffix 규격에 의존한다.
 - 이전 recording의 WebM/TXT만 선택하면 카드 03/05/06은 사용할 수 있지만 native

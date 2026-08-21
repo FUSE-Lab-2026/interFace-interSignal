@@ -247,8 +247,12 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
 - Playback accepts up to three `.eegsession.zip` files produced by the recorder.
 - Each ZIP is extracted and CRC-validated locally in browser memory. ZIP contents
   are not uploaded or sent to `server.js`.
-- The application-created ZIP uses stored entries. Arbitrary third-party ZIP
-  compression methods are not supported.
+- Supported entry compression: Store (`0`) and Deflate (`8`). Deflate uses the
+  browser-native `DecompressionStream("deflate-raw")` API.
+- Files may be at archive root or inside one folder. Safe paths are flattened to
+  filenames; Finder `__MACOSX`, AppleDouble `._*`, and `.DS_Store` entries are ignored.
+- Absolute paths, parent traversal, encrypted archives, Zip64, split archives,
+  duplicate flattened filenames, and other compression methods are rejected.
 - Legacy loose camera/raw file pairs with optional packet NDJSON remain accepted.
 - Raw EEG filename: `<session>-raw-eeg.txt`
 - Camera filename: `<session>-camera-100p.webm`; the earlier

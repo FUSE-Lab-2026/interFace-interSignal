@@ -107,6 +107,11 @@ browser. Press **녹화 파일 불러오기** and select an `.eegsession.zip` pr
 by the Record tab. The ZIP is extracted locally in browser memory; it is not
 uploaded to a server. Up to three ZIP files can be selected together.
 
+Playback also accepts manually created standard ZIP files using Store or
+Deflate compression. The component files may be at the ZIP root or inside one
+folder; Finder `__MACOSX` metadata is ignored. Encrypted and Zip64 archives are
+not supported.
+
 - Up to three sessions can be loaded at once.
 - Each session displays camera, raw EEG, and one selected signal card.
 - The `03`-`06` control applies one Signals-page card to every loaded session:
