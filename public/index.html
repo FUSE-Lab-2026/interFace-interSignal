@@ -14,6 +14,7 @@
       <button class="app-tab is-active" type="button" data-view-button="signals" aria-selected="true">Signals</button>
       <button class="app-tab" type="button" data-view-button="record" aria-selected="false">Record</button>
       <button class="app-tab" type="button" data-view-button="playback" aria-selected="false">Playback</button>
+      <button class="app-tab" type="button" data-view-button="pair" aria-selected="false">Pair Live</button>
     </nav>
     <nav class="panel-toggles" aria-label="Visible signal cards">
       <label class="panel-toggle" aria-label="Toggle signal card 01">
@@ -105,6 +106,62 @@
       </div>
     </section>
 
+    <section id="pair-view" class="pair-view" hidden>
+      <header class="pair-toolbar">
+        <div class="pair-actions">
+          <button id="pair-connect-a" class="pair-button pair-button-a" type="button">Connect A</button>
+          <button id="pair-connect-b" class="pair-button pair-button-b" type="button">Connect B</button>
+          <button id="pair-simulate" class="pair-button" type="button" aria-pressed="false">Test Signal</button>
+        </div>
+        <p id="pair-message" class="pair-message" role="status" aria-live="polite">Connect two TGAM ports or start the test signal.</p>
+      </header>
+
+      <div class="pair-grid">
+        <section class="pair-person pair-person-a" aria-labelledby="pair-label-a">
+          <header class="pair-person-header">
+            <h2 id="pair-label-a">A</h2>
+            <output id="pair-status-a">IDLE</output>
+          </header>
+          <div class="pair-person-body">
+            <div class="pair-contact" aria-label="Participant A signal contact">
+              <output id="pair-quality-a">--</output>
+              <div class="pair-contact-track"><span id="pair-contact-a"></span></div>
+            </div>
+            <div class="pair-person-signals">
+              <canvas id="pair-raw-a" class="pair-raw" aria-label="Participant A raw EEG"></canvas>
+              <div id="pair-bands-a" class="pair-bands" aria-label="Participant A five-band profile"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="pair-person pair-person-b" aria-labelledby="pair-label-b">
+          <header class="pair-person-header">
+            <h2 id="pair-label-b">B</h2>
+            <output id="pair-status-b">IDLE</output>
+          </header>
+          <div class="pair-person-body">
+            <div class="pair-contact" aria-label="Participant B signal contact">
+              <output id="pair-quality-b">--</output>
+              <div class="pair-contact-track"><span id="pair-contact-b"></span></div>
+            </div>
+            <div class="pair-person-signals">
+              <canvas id="pair-raw-b" class="pair-raw" aria-label="Participant B raw EEG"></canvas>
+              <div id="pair-bands-b" class="pair-bands" aria-label="Participant B five-band profile"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="pair-between" aria-labelledby="pair-between-title">
+          <header class="pair-between-header">
+            <h2 id="pair-between-title">BETWEEN</h2>
+            <output id="pair-similarity">--</output>
+          </header>
+          <canvas id="pair-between-canvas" aria-label="Two-person five-band constellation and similarity history"></canvas>
+          <p class="pair-method">FIVE-BAND SHAPE MATCH / 4 SECOND TRAIL</p>
+        </section>
+      </div>
+    </section>
+
     <section id="playback-view" class="playback-view" hidden>
       <header class="playback-toolbar">
         <div class="playback-actions">
@@ -143,6 +200,8 @@
   <script src="./recorder.js"></script>
   <script src="./playback-core.js"></script>
   <script src="./playback.js"></script>
+  <script src="./pair-core.js"></script>
+  <script src="./pair-live.js"></script>
   <script src="./sketch.js"></script>
 </body>
 </html>

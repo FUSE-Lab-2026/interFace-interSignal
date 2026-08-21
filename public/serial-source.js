@@ -1,4 +1,4 @@
-const TGAMSerialSource = (() => {
+const createTGAMSerialSource = () => {
   const BAUD_RATE = 57600;
   const packetListeners = new Set();
   const frameListeners = new Set();
@@ -229,4 +229,8 @@ const TGAMSerialSource = (() => {
       return () => frameListeners.delete(listener);
     },
   };
-})();
+};
+
+const TGAMSerial = { createSource: createTGAMSerialSource };
+
+const TGAMSerialSource = TGAMSerial.createSource();

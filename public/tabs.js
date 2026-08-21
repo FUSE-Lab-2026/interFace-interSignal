@@ -3,6 +3,7 @@ const AppTabs = (() => {
   const views = {
     record: document.querySelector("#recording-view"),
     playback: document.querySelector("#playback-view"),
+    pair: document.querySelector("#pair-view"),
   };
   const validViews = new Set(["signals", ...Object.keys(views)]);
   let activeView = "signals";

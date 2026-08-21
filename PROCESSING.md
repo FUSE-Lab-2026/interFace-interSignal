@@ -293,3 +293,49 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
   EEG cursor reads that recording's video clock.
 - Up to three recordings are rendered as vertically stacked comparison rows.
 - Removing or clearing a recording pauses the video and revokes its object URL.
+
+## Two-person live comparison
+
+### Independent inputs
+
+- `TGAMSerial.createSource()` creates an independent serial port, reader,
+  ThinkGear parser, packet listeners, frame listeners, and statistics object.
+- Pair Live owns one source for A and one for B. The earlier
+  `TGAMSerialSource` singleton remains available to Signals and Record.
+- Each source requests 57,600 baud and expects its own approximately 512 Hz raw
+  stream. The two devices do not share a hardware sample clock.
+
+### Per-person processing
+
+- A and B each own a separate `DerivedSignalEngine` instance.
+- Each engine uses the same 1,024-sample Hann-windowed FFT and absolute five-band
+  power calculation documented above.
+- Band output is unavailable unless that person's TGAM Poor Signal value is 0.
+- The participant band bars are relative display shapes. Each bar is divided by
+  the largest band in that person's current five-band profile and square-rooted
+  for visual compression. This display transform does not modify the similarity
+  calculation.
+
+### Between calculation
+
+- For each participant, absolute band powers are divided by that participant's
+  total Delta-through-Gamma power to produce a relative five-value profile.
+- Cosine similarity compares the two profiles:
+  `dot(A,B) / (magnitude(A) * magnitude(B))`.
+- The raw result is bounded to `0-1` and displayed as `0-100`.
+- Display smoothing retains 82% of the previous value and adds 18% of the newest
+  value. A point is stored every 250 ms and the canvas keeps the latest four
+  seconds.
+- The constellation scales each profile to its own strongest band, square-roots
+  the radial values, and overlays A and B with multiply blending.
+- This value is a simultaneous frequency-distribution comparison. It is not
+  PLV, cross-device phase coherence, hyperscanning evidence, or a measurement of
+  interpersonal connection.
+
+### Test signal
+
+- Test Signal feeds both engines synthetic mixtures at a nominal 512 samples/s.
+- A and B contain changing 5.5-36 Hz components, a shared 10 Hz component, and
+  independent random noise so their profiles gradually converge and diverge.
+- No filtering, resampling, packet parsing, serial timing, or hardware behavior
+  is validated by this mode.

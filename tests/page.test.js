@@ -7,6 +7,7 @@ const html = fs.readFileSync(path.join(publicPath, "index.html"), "utf8");
 const sketch = fs.readFileSync(path.join(publicPath, "sketch.js"), "utf8");
 const recorder = fs.readFileSync(path.join(publicPath, "recorder.js"), "utf8");
 const playback = fs.readFileSync(path.join(publicPath, "playback.js"), "utf8");
+const pairLive = fs.readFileSync(path.join(publicPath, "pair-live.js"), "utf8");
 const styles = fs.readFileSync(path.join(publicPath, "style.css"), "utf8");
 
 const cardIds = Array.from(html.matchAll(/data-card-id="([^"]+)"/g), (match) => match[1]);
@@ -34,7 +35,7 @@ assert(sketch.includes("[data-card-id]:checked"));
 assert(sketch.includes('let visibleCardIds = new Set(["contact"])'));
 assert(sketch.includes("resizeForLayout()"));
 assert(sketch.includes("TGAM Q ${Math.round(signalQuality)}/200"));
-assert.equal((html.match(/data-view-button=/g) || []).length, 3);
+assert.equal((html.match(/data-view-button=/g) || []).length, 4);
 for (const id of [
   "choose-folder",
   "choose-stimulus",
@@ -84,5 +85,28 @@ assert(playback.includes("MAX_RECORDINGS"));
 assert.equal((html.match(/data-playback-mode=/g) || []).length, 3);
 assert(playback.includes("calculateBandSeries"));
 assert(playback.includes("drawBetween"));
+
+for (const id of [
+  "pair-view",
+  "pair-connect-a",
+  "pair-connect-b",
+  "pair-simulate",
+  "pair-raw-a",
+  "pair-raw-b",
+  "pair-bands-a",
+  "pair-bands-b",
+  "pair-between-canvas",
+  "pair-similarity",
+]) {
+  assert(html.includes(`id="${id}"`), `${id} is missing`);
+}
+assert(html.includes('data-view-button="pair"'));
+assert(html.includes('<script src="./pair-core.js"></script>'));
+assert(html.includes('<script src="./pair-live.js"></script>'));
+assert(pairLive.includes("TGAMSerial.createSource()"));
+assert.equal((pairLive.match(/createParticipant\("[ab]"\)/g) || []).length, 2);
+assert(pairLive.includes("TGAMPairCore.cosineSimilarity"));
+assert(pairLive.includes("startSimulation"));
+assert(styles.includes('body[data-view="pair"] .signal-canvas'));
 
 console.log("Standalone page structure tests passed");

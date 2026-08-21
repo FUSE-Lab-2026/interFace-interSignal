@@ -6,8 +6,9 @@ experiment, observe, and guess what each display responds to.
 
 This is an exploratory visualization, not a medical or diagnostic tool.
 
-The `demo/self-other-video` branch adds a separate imitation-video recording
-and two-viewer comparison prototype. It does not change the `main` branch.
+The `demo/self-other-video` branch preserves the imitation-video recording and
+two-viewer playback prototype. The `demo/two-person-live` branch adds a separate
+two-headset live comparison and does not change `main` or the earlier demo.
 
 ## Hosted version
 
@@ -41,6 +42,22 @@ The header should show approximately `512 raw/s` while raw packets are arriving.
 `bad 0` is the checksum-failure counter; a rising value indicates corrupt or
 misaligned serial data. `TGAM Q n/200` shows the native contact-quality packet:
 `0` is best and `200` means no contact.
+
+## Pair Live tab
+
+The `demo/two-person-live` branch can open two distinct TGAM serial ports in one
+desktop Chromium page. Open `#pair`, press **Connect A**, select the first TGAM,
+then press **Connect B** and select the other TGAM. No other app can hold either
+serial port at the same time.
+
+Each participant has an independent parser, contact indicator, raw waveform,
+and five-band power profile. `Between` overlays their relative Delta, Theta,
+Alpha, Beta, and Gamma profiles and plots four seconds of cosine similarity on
+a 0-100 display. This compares the shape of their band-power distributions; it
+is not PLV, phase synchronization, shared emotion, or neural coupling.
+
+Press **Test Signal** to exercise both streams and the visualization without
+TGAM hardware. The synthetic stream is a UI test and not a hardware emulator.
 
 ## Cards and visibility
 

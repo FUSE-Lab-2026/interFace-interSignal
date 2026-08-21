@@ -4,7 +4,7 @@
  * applied only while calculating the scores below.
  */
 
-const DerivedSignals = (() => {
+const createDerivedSignalEngine = () => {
   const SAMPLE_RATE = 512;
   const ALPHA_FFT_SIZE = 1024;
   const HIGH_FREQUENCY_FFT_SIZE = 512;
@@ -272,4 +272,8 @@ const DerivedSignals = (() => {
     reset,
     setSignalQuality,
   };
-})();
+};
+
+const DerivedSignalEngine = { create: createDerivedSignalEngine };
+
+const DerivedSignals = DerivedSignalEngine.create();

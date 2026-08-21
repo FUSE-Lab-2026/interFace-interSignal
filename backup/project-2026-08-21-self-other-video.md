@@ -3,11 +3,11 @@
 ## 문서 정보
 
 - 마지막 업데이트: 2026-08-21
-- 현재 단계: 2인 TGAM 동시 live 비교 prototype 구현, 실제 2대 장비 통합 검증 전
+- 현재 단계: self/other imitation-video demo branch 구현 및 browser 검증 완료, 실제 TGAM 통합 검증 전
 - 저장소: `FUSE-Lab-2026/interFace-interSignal`
-- 기준 브랜치: `demo/two-person-live` (`main`, `demo/self-other-video`와 분리)
+- 기준 브랜치: `demo/self-other-video` (`main`과 분리)
 - 문서 역할: 데이터 규격, MVP 범위, 구현 상태, 검증 상태를 관리하는 단일 기준 문서
-- 직전 규격: `backup/project-2026-08-21-self-other-video.md`
+- 직전 규격: `backup/project-2026-08-18-v2.md`
 - 초기 문서: `backup/project-2026-08-11-legacy-tgam-eeg-webviz.md`
 
 이 파일은 데이터 계약, 신호 계산, UI 범위, 완료 상태가 바뀔 때 코드와 함께
@@ -23,8 +23,6 @@ TGAM EEG를 처음 접하는 워크숍 참여자가 용어를 먼저 배우기�
 - 참여자는 카드를 켜고 끄며 신호의 반응 차이를 비교한다.
 - 같은 session의 TGAM frame, raw EEG, 저용량 webcam 영상을 함께 기록한다.
 - 녹화한 camera와 raw EEG를 나란히 재생하며 최대 3개 session을 비교한다.
-- 별도 Pair Live view에서 2대의 TGAM을 독립 serial port로 동시에 읽고 두 사람의
-  raw EEG와 5-band profile을 실시간 비교한다.
 - 의료 진단, 임상 판정, 정량 뇌 상태 측정을 목적으로 하지 않는다.
 
 ## 현재 MVP
@@ -49,17 +47,13 @@ TGAM EEG를 처음 접하는 워크숍 참여자가 용어를 먼저 배우기�
 - 최대 3개 camera WebM/raw EEG TXT pair의 browser-only 비교 재생
 - playback Raw/Bands/Between EEG mode와 첫 2개 session의 self/other response 비교
 - `public/` 정적 파일을 GitHub Pages에 자동 배포
-- `Pair Live` tab의 TGAM A/B 독립 연결, raw stream, 접촉 상태, 5-band profile
-- 두 사람의 relative 5-band polygon overlap과 최근 4초 band-shape similarity trail
-- 장비 없이 Pair Live UI와 계산 흐름을 확인하는 2인 synthetic test signal
 
 ### MVP에서 제외
 
 - Node 기반 시리얼 수신 및 EEG 전처리
 - WebSocket EEG 전송
 - 휴대폰 리모컨 또는 다중 기기 동기화
-- 2인 live TGAM 동시 녹화와 file export
-- PLV, coherence, hyperscanning 또는 임상적 interpersonal synchrony 추정
+- 여러 TGAM 헤드셋 동시 연결
 - 사용자 이름이나 참가자 profile 저장
 - 의료적 또는 임상적 분류
 
@@ -81,10 +75,6 @@ Local camera WebM + raw EEG TXT
   -> filename pair
   -> Raw 또는 5-band absolute power
   -> 첫 2개 recording의 within-session Between 비교
-
-TGAM A serial -> parser A -> raw/band engine A --+
-                                                   -> Pair Live constellation + similarity trail
-TGAM B serial -> parser B -> raw/band engine B --+
 ```
 
 Node는 `public/`을 `localhost`에 제공하는 정적 서버 역할만 한다. Node가 시리얼
@@ -98,37 +88,7 @@ Node는 `public/`을 `localhost`에 제공하는 정적 서버 역할만 한다.
 - trigger: `main`의 `public/**` 또는 workflow 변경 push, 수동 `workflow_dispatch`
 - runtime: 정적 HTML/CSS/JavaScript와 p5.js CDN; `server.js`는 배포하지 않음
 - browser API: GitHub Pages HTTPS origin에서 Web Serial, camera, File System Access API 사용
-- demo branch push는 현재 Pages trigger가 아니며 공개 URL은 `main` 버전이다.
-
-### Pair Live 시리얼 구성
-
-- `TGAMSerial.createSource()`가 port, reader, parser, counters, listener를 instance별로 소유한다.
-- A와 B의 `Connect`는 각각 `navigator.serial.requestPort()`를 호출한다.
-- 동일 port를 두 번 열 수 없으므로 두 번째 chooser에서는 반드시 다른 TGAM port를 선택한다.
-- 기존 Signals/Record의 `TGAMSerialSource` singleton API는 유지해 이전 기능을 변경하지 않는다.
-- A/B raw stream은 각각 독립적으로 약 512 Hz이며 합계 약 1,024 raw samples/second다.
-- 두 장비 sample clock의 hardware-level 동기화는 가정하지 않는다.
-
-### Pair Live 비교값
-
-각 사람의 최신 1,024 raw samples에 기존 absolute band-power 계산을 독립 적용한다.
-Poor Signal이 `0`일 때만 비교값을 표시한다.
-
-```text
-r_i = P_i / sum(P_delta, P_theta, P_alpha, P_beta, P_gamma)
-
-shape_match = sum(rA_i * rB_i) /
-  (sqrt(sum(rA_i^2)) * sqrt(sum(rB_i^2)))
-```
-
-- 입력 band: Delta 0.5-4, Theta 4-8, Alpha 8-13, Beta 13-30, Gamma 30-50 Hz
-- `P_i`: raw EEG에서 계산한 absolute power, 단위 `uV^2`
-- `r_i`: 사람별 total 5-band power로 나눈 relative profile
-- 출력: cosine similarity 0-1을 UI에서 0-100으로 표시
-- 표시 smoothing: 이전 값 82%, 새 값 18%의 exponential smoothing
-- trail: 250 ms마다 기록한 최근 4초
-- 의미: 두 사람의 현재 band power **분포 모양** 유사도
-- 의미하지 않는 것: PLV, 위상 동기화, 감정 일치, 교감, 동일한 지각 또는 뇌 연결
+- `demo/self-other-video` push는 현재 Pages trigger가 아니며 공개 URL은 `main` 버전이다.
 
 ## 데이터 규격
 
@@ -396,8 +356,8 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 
 | 파일 | 책임 |
 |---|---|
-| `public/index.html` | Signals/Record/Playback/Pair Live tab과 각 view DOM |
-| `public/serial-source.js` | instance별 Web Serial 연결/해제, packet/frame dispatch와 legacy singleton |
+| `public/index.html` | Signals/Record/Playback tab과 각 view DOM |
+| `public/serial-source.js` | Web Serial 연결/해제, packet/frame dispatch |
 | `public/tgam-parser.js` | ThinkGear framing, checksum, payload 및 physical frame 출력 |
 | `public/derived-signals.js` | 카드 01, 03, 05, 06 계산과 FFT/PSD |
 | `public/sketch.js` | live data buffer, 반응형 layout, 카드 01-06 p5 rendering |
@@ -406,9 +366,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 | `public/recorder.js` | 폴더, camera, TGAM frame, file writer, stop/finalize lifecycle |
 | `public/playback-core.js` | file pairing, raw TXT parse, playback window 계산 |
 | `public/playback.js` | 최대 3개 video/raw EEG playback와 waveform rendering |
-| `public/pair-core.js` | relative 5-band profile과 cosine similarity 계산 |
-| `public/pair-live.js` | dual serial UI, test stream, raw/band/Between rendering |
-| `public/style.css` | Signals, Record, Playback, Pair Live view style |
+| `public/style.css` | Signals, Record, Playback view style |
 | `server.js` | dependency-free localhost static server |
 | `PROCESSING.md` | 계산과 시각 매핑의 상세 변경 기록 |
 | `tests/` | parser, mock Web Serial, page structure 검증 |
@@ -456,13 +414,6 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] 실제 2026-08-20 pair 2개를 8초로 seek해 populated Between/Bands browser render 확인
 - [x] 1,440 x 1,200 Record demo branch browser render와 scroll/overflow 확인
 - [x] `public/` 전용 GitHub Pages Actions workflow 추가
-- [x] serial source와 derived-signal engine을 독립 instance factory로 확장
-- [x] 기존 singleton 기반 Signals/Record 동작 보존
-- [x] Pair Live의 A/B connect, quality, raw EEG, five-band profile 구현
-- [x] 두 relative band polygon overlap과 0-100 cosine similarity trail 구현
-- [x] 장비 없이 512 Hz 2인 stream을 생성하는 Test Signal 구현
-- [x] pair profile/similarity 계산 자동 테스트 추가
-- [x] Pair Live Test Signal을 1,440 px desktop과 500 px narrow viewport에서 browser 검증
 
 ### 실제 장비로 확인 필요
 
@@ -481,11 +432,6 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [ ] serial 또는 camera 중단 시 세 파일과 manifest가 정상 finalize되는지 확인
 - [ ] Chrome native video seek 후 waveform 위치 변경을 수동 확인
 - [ ] 실제 3개 recording 동시 재생에서 video와 waveform rendering 성능 확인
-- [ ] macOS와 Chrome chooser에서 TGAM 두 대가 서로 다른 port로 표시되는지 확인
-- [ ] 두 port를 동시에 열고 각 stream이 약 512 raw samples/second인지 확인
-- [ ] A/B를 반대로 선택하거나 같은 port를 다시 선택했을 때 오류 안내 확인
-- [ ] 두 장비 접촉 상태가 서로 독립적으로 표시되는지 확인
-- [ ] 10분 dual stream에서 checksum failure, UI frame rate, disconnect 복구 확인
 
 ## MVP 완료 기준
 
@@ -502,8 +448,6 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 9. recording start와 imitation video start 차이가 workshop 허용 범위인지 실제 browser에서 확인한다.
 10. Playback에서 pair를 열고 Raw/Bands/Between이 video seek를 따라 갱신된다.
 11. `npm test`가 통과한다.
-12. Pair Live에서 서로 다른 두 TGAM을 동시에 열고 두 raw stream을 독립 표시한다.
-13. 두 장비가 모두 정상 접촉일 때 2초 후 band polygon과 shape-match trail이 갱신된다.
 
 ## 알려진 제약 및 위험
 
@@ -535,12 +479,6 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
   감정, 지각 내용 또는 neural coupling을 측정하지 않는다.
 - countdown 완료와 stimulus/MediaRecorder 시작은 같은 browser task에서 실행하지만
   video decoder와 MediaRecorder의 첫 실제 frame 사이에는 작은 지연이 생길 수 있다.
-- Pair Live의 두 TGAM sample clock은 공통 hardware clock이 아니며 browser 도착 시간에도
-  USB/Bluetooth scheduling jitter가 있다. 현재 band-profile 비교는 phase alignment를 요구하지 않는다.
-- 동일 VID/PID를 가진 USB adapter는 Chrome chooser에서 이름이 같아 보일 수 있다.
-  운영 시 A를 먼저 선택하고 B를 두 번째로 선택해 wearer mapping을 확인한다.
-- Pair Live Test Signal은 UI와 계산 흐름 확인용 synthetic mixture이며 TGAM packet을 모사한
-  장비 호환성 시험이 아니다.
 
 ## 실행 및 검증
 
@@ -552,8 +490,7 @@ npm test
 - 기본 URL: `http://localhost:3000`
 - 다른 port 예시: `PORT=8091 npm start`
 - GitHub Pages: `https://fuse-lab-2026.github.io/interFace-interSignal/` (`main` 버전)
-- current demo branch: `demo/two-person-live`; local run으로 검증하며 `main`에 merge하지 않음
-- preserved demo branch: `demo/self-other-video`
+- demo branch: `demo/self-other-video`; local run으로 검증하며 `main`에 merge하지 않음
 - 현재 자동 테스트: parser packet/split/checksum/physical frame, mock Web Serial,
   recorder format, mock folder/camera/MediaRecorder session lifecycle, page structure
 

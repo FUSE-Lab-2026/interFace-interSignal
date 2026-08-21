@@ -57,6 +57,8 @@ const publicPath = path.join(__dirname, "..", "public");
 vm.runInContext(fs.readFileSync(path.join(publicPath, "tgam-parser.js"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(publicPath, "serial-source.js"), "utf8"), context);
 const source = vm.runInContext("TGAMSerialSource", context);
+const factory = vm.runInContext("TGAMSerial", context);
+assert.notEqual(factory.createSource(), factory.createSource());
 
 (async () => {
   const received = [];
