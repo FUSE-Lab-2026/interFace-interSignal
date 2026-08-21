@@ -48,7 +48,7 @@
     const complete = [];
     const incomplete = [];
     for (const session of sessions.values()) {
-      if (session.raw && session.video) complete.push(session);
+      if (session.raw && (session.video || session.packets)) complete.push(session);
       else incomplete.push(session);
     }
     return { complete, incomplete, ignored };

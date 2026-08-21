@@ -588,6 +588,22 @@ body[data-view="playback"] .serial-button {
   image-rendering: pixelated;
 }
 
+.playback-camera-empty {
+  height: 228px;
+  padding: 24px;
+  display: grid;
+  align-content: center;
+  gap: 24px;
+  color: #898c8d;
+  font-size: 10px;
+  text-align: center;
+}
+
+.playback-eeg-seek {
+  width: 100%;
+  accent-color: #d9dcd8;
+}
+
 .playback-eeg-header {
   padding-right: 14px;
   display: flex;

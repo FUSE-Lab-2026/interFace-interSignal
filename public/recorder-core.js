@@ -41,11 +41,11 @@
     ].join("");
   };
 
-  const createFileNames = (baseName, videoExtension = "webm") => ({
+  const createFileNames = (baseName, videoExtension = "webm", includeVideo = true) => ({
     archive: `${baseName}.eegsession.zip`,
     packets: `${baseName}-tgam-packets.ndjson`,
     raw: `${baseName}-raw-eeg.txt`,
-    video: `${baseName}-camera-100p.${videoExtension}`,
+    video: includeVideo ? `${baseName}-camera-100p.${videoExtension}` : null,
     manifest: `${baseName}-session.json`,
   });
 

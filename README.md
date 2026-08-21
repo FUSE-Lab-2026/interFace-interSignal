@@ -76,7 +76,8 @@ shown in Korean for workshop operation.
 1. Press **TGAM 연결** and select the serial port.
 2. Open `녹화` or visit `http://localhost:3000/#record`.
 3. Press **저장 폴더 선택** and grant write access.
-4. Press **카메라 켜기** and grant camera access.
+4. Optionally press **카메라 켜기** and grant camera access. Leave it off for
+   an EEG-only session.
 5. Press **30초 녹화** or **1분 녹화**. The session stops and finalizes
    automatically; **녹화 중지** remains available for an early finish.
 
@@ -87,18 +88,21 @@ stack in the same order on narrow screens.
 
 Each completed session leaves one file in the selected folder:
 
-- `*.eegsession.zip`: one standard, uncompressed ZIP containing the packet
-  NDJSON, raw EEG TXT, silent 100p WebM, and session JSON manifest
+- `*.eegsession.zip`: one standard, uncompressed ZIP containing packet NDJSON,
+  raw EEG TXT, and a session JSON manifest. Camera-enabled sessions also contain
+  a silent 100p WebM.
 
 The component files stream directly to disk while recording. After all streams
 close, the app creates and CRC-validates the ZIP, then removes the temporary
 components. If ZIP finalization fails, the component files remain for recovery.
 
-The app requests a broadly supported 640 x 480 camera input and waits for a real
-preview frame. The recorded stream is independently downsampled through a
+Camera is optional and does not affect the EEG recorder start controls. When it
+is enabled, the app requests a broadly supported 640 x 480 input and waits for a
+real preview frame. The recorded stream is independently downsampled through a
 134 x 100 canvas. Permission denial, insecure context, missing camera, and a
-camera busy in another app are shown as distinct errors. The browser may choose
-a slightly different actual video bitrate than requested.
+camera busy in another app are shown as distinct errors, but the user may still
+record EEG only. The browser may choose a slightly different actual video
+bitrate than requested.
 
 ## 재생 tab
 
@@ -113,13 +117,15 @@ folder; Finder `__MACOSX` metadata is ignored. Encrypted and Zip64 archives are
 not supported.
 
 - Up to three sessions can be loaded at once.
-- Each session displays camera, raw EEG, and one selected signal card.
+- Each session displays camera, raw EEG, and one selected signal card. EEG-only
+  sessions show `카메라 없음` in the camera pane.
 - The `03`-`06` control applies one Signals-page card to every loaded session:
   absolute five-band power, native Attention/Meditation, Movement, or Eyes Closed.
 - On desktop, Raw EEG is two-thirds of its previous width and the selected card
   uses the remaining third. Narrow screens stack all three panes.
-- The raw waveform follows that session video's `currentTime`, including native
-  video seeking.
+- With video, the raw waveform follows that session video's `currentTime`,
+  including native video seeking. EEG-only sessions use the reconstructed raw
+  EEG duration and an on-screen timeline slider as their playback clock.
 - Waveform x positions use `sample_index` and the TXT header sample rate
   (normally 512 Hz). The recorded `elapsed_ms` remains available as browser
   receipt timing, but serial chunk bursts do not collapse samples onto one x
@@ -154,11 +160,11 @@ TGAM serial bytes
      -> browser FFT-derived signals -> p5.js visualization
      -> frame NDJSON + raw EEG text recorder
 
-Web camera -> preview -> 134 x 100 canvas -> MediaRecorder -> WebM file
+Optional web camera -> preview -> 134 x 100 canvas -> MediaRecorder -> WebM file
 
-NDJSON + TXT + WebM + manifest -> verified eegsession ZIP
+NDJSON + TXT + manifest (+ optional WebM) -> verified eegsession ZIP
 
-eegsession ZIP -> browser extraction -> synchronized video/waveform/cards
+eegsession ZIP -> browser extraction -> video clock or EEG-only clock -> waveform/cards
 ```
 
 Node only serves static files on localhost. It does not access the serial port,

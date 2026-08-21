@@ -186,6 +186,8 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
 
 ### Camera video
 
+- Camera capture is optional. With camera disabled, recording still writes TGAM
+  packet NDJSON and raw EEG TXT and finalizes a valid EEG-only session ZIP.
 - Filename: `YYYY-MM-DD_HHmmss_SSS-camera-100p.webm`
 - Audio: disabled at capture and absent from the recording stream
 - Camera input request: ideal 640 x 480, ideal 15 FPS, maximum 30 FPS
@@ -214,17 +216,22 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
 - Records serial/video targets, actual camera settings, selected codec and bitrate,
   filenames, timestamps, stop reason, frame/raw totals, video bytes, and parser
   statistics at start and stop.
-- The manifest is written after all three stream files close successfully.
+- `video.enabled` explicitly records whether the session included camera capture.
+  For EEG-only sessions, the video target, input, recorder details, and video
+  filename are `null`.
+- The manifest is written after every enabled stream closes successfully.
 
 ### Session ZIP
 
 - Final filename: `YYYY-MM-DD_HHmmss_SSS.eegsession.zip`
-- Entries: packet NDJSON, raw EEG TXT, camera WebM, and session JSON manifest.
+- Required entries: packet NDJSON, raw EEG TXT, and session JSON manifest.
+  Camera-enabled sessions additionally contain camera WebM.
 - The archive uses standard ZIP stored entries without compression and includes
   CRC-32 for every entry. No external ZIP library or server is used.
-- The three stream files are written directly to disk during recording. After
-  they close and the manifest is written, the browser reads the four components,
-  creates the ZIP, reopens it, and verifies every required filename and CRC.
+- Enabled stream files are written directly to disk during recording. After they
+  close and the manifest is written, the browser reads the three or four
+  components, creates the ZIP, reopens it, and verifies every required filename
+  and CRC.
 - Temporary components are deleted only after validation succeeds. If archive
   creation or validation fails, they remain in the selected folder for recovery.
 - Finalization temporarily holds the component bytes and ZIP Blob in browser
@@ -235,7 +242,8 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
 - Reaching 30 seconds or 1 minute finalizes every stream, writes the manifest,
   and creates the session ZIP.
 - `녹화 중지` can finalize a session before its planned duration.
-- Serial disconnect, camera end, video error, or file-write error initiates stop.
+- Serial disconnect or file-write error initiates stop. Camera end or video error
+  also initiates stop when camera capture is enabled.
 - Closing or reloading the page while recording triggers a browser warning.
 - A browser/OS crash before ZIP validation can leave recoverable component files
   or an incomplete current session in the selected folder.
@@ -253,7 +261,8 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
   filenames; Finder `__MACOSX`, AppleDouble `._*`, and `.DS_Store` entries are ignored.
 - Absolute paths, parent traversal, encrypted archives, Zip64, split archives,
   duplicate flattened filenames, and other compression methods are rejected.
-- Legacy loose camera/raw file pairs with optional packet NDJSON remain accepted.
+- Recorder ZIPs may contain video + raw + packet files or EEG-only raw + packet
+  files. Legacy loose camera/raw file pairs with optional packet NDJSON remain accepted.
 - Raw EEG filename: `<session>-raw-eeg.txt`
 - Camera filename: `<session>-camera-100p.webm`; the earlier
   `<session>-camera-240p.webm` form is also accepted.
@@ -277,20 +286,23 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
 - If the header has no valid sample rate, playback falls back to `elapsed_ms`.
 - Timeline reconstruction changes only x positions. Raw values are not filtered,
   smoothed, interpolated, or resampled, and no samples are inserted or removed.
-- Each waveform uses its own video's `currentTime * 1000` as the current EEG
-  timestamp.
+- A video session uses its own video's `currentTime * 1000` as the current EEG
+  timestamp. An EEG-only session uses an internal monotonic playback clock whose
+  duration comes from the reconstructed raw EEG timeline.
 - The visible window is 4,000 ms. Normally it starts 3,000 ms before the current
   timestamp, leaving up to 1,000 ms ahead of the cursor. At either file boundary,
   the window shifts to remain within the available duration.
 - Display clipping remains fixed at raw values `-2048` to `+2048`; clipping only
   affects drawing and does not modify loaded samples.
-- Native video seeking immediately changes the waveform window.
+- Native video seeking immediately changes the waveform window. EEG-only
+  sessions expose a range slider that seeks the internal playback clock.
 
 ### Multi-session behavior
 
-- `재생`, `일시정지`, and `처음부터` operate on every loaded video.
-- Camera and EEG synchronization is maintained within each recording because the
-  EEG cursor reads that recording's video clock.
+- `재생`, `일시정지`, and `처음부터` operate on every loaded session, including
+  mixed camera and EEG-only sessions.
+- Camera sessions use the video clock for camera/EEG synchronization. EEG-only
+  sessions advance from their raw EEG timeline.
 - Up to three recordings are rendered as vertically stacked comparison rows.
 - Removing or clearing a recording pauses the video and revokes its object URL.
 

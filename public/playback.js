@@ -71,6 +71,57 @@ const TGAMPlayback = (() => {
     elements.empty.hidden = hasRecordings;
   };
 
+  const getCurrentTime = (recording) => {
+    if (recording.video) return recording.video.currentTime;
+    const { clock } = recording;
+    if (clock.playing) {
+      clock.currentTime = Math.min(
+        clock.duration,
+        clock.startedFrom + (performance.now() - clock.startedAt) / 1000
+      );
+      if (clock.currentTime >= clock.duration) clock.playing = false;
+    }
+    return clock.currentTime;
+  };
+
+  const getDuration = (recording) => {
+    if (recording.video && Number.isFinite(recording.video.duration)) return recording.video.duration;
+    return recording.clock?.duration || 0;
+  };
+
+  const setCurrentTime = (recording, seconds) => {
+    const duration = getDuration(recording);
+    const currentTime = Math.max(0, Math.min(duration, Number(seconds) || 0));
+    if (recording.video) {
+      recording.video.currentTime = currentTime;
+      return;
+    }
+    recording.clock.currentTime = currentTime;
+    recording.clock.startedFrom = currentTime;
+    recording.clock.startedAt = performance.now();
+  };
+
+  const playRecording = (recording) => {
+    if (recording.video) {
+      if (recording.video.ended) recording.video.currentTime = 0;
+      return recording.video.play();
+    }
+    const currentTime = getCurrentTime(recording);
+    if (currentTime >= recording.clock.duration) recording.clock.currentTime = 0;
+    recording.clock.startedFrom = recording.clock.currentTime;
+    recording.clock.startedAt = performance.now();
+    recording.clock.playing = true;
+    return Promise.resolve();
+  };
+
+  const pauseRecording = (recording) => {
+    if (recording.video) recording.video.pause();
+    else {
+      getCurrentTime(recording);
+      recording.clock.playing = false;
+    }
+  };
+
   const resizeCanvas = (canvas, context) => {
     const width = Math.max(1, Math.round(canvas.clientWidth));
     const height = Math.max(1, Math.round(canvas.clientHeight));
@@ -86,7 +137,7 @@ const TGAMPlayback = (() => {
   };
 
   const drawWaveform = (recording) => {
-    const { canvas, context, samples, video, time } = recording;
+    const { canvas, context, samples, time } = recording;
     const { width, height } = resizeCanvas(canvas, context);
     context.clearRect(0, 0, width, height);
     context.fillStyle = "#e6e6e1";
@@ -110,8 +161,10 @@ const TGAMPlayback = (() => {
     }
 
     const rawDurationMs = samples.length ? samples[samples.length - 1].timelineMs : 0;
-    const currentMs = Math.max(0, video.currentTime * 1000);
-    const totalMs = Math.max(rawDurationMs, Number.isFinite(video.duration) ? video.duration * 1000 : 0);
+    const currentSeconds = getCurrentTime(recording);
+    const totalSeconds = Math.max(rawDurationMs / 1000, getDuration(recording));
+    const currentMs = Math.max(0, currentSeconds * 1000);
+    const totalMs = totalSeconds * 1000;
     const playbackWindow = getPlaybackWindow(currentMs, totalMs);
     const range = getSampleRange(samples, playbackWindow.startMs, playbackWindow.endMs);
     const durationMs = playbackWindow.endMs - playbackWindow.startMs;
@@ -142,8 +195,11 @@ const TGAMPlayback = (() => {
     context.lineTo(cursorX, graph.y + graph.height);
     context.stroke();
 
-    const totalSeconds = Number.isFinite(video.duration) ? video.duration : rawDurationMs / 1000;
-    time.textContent = `${formatTime(video.currentTime)} / ${formatTime(totalSeconds)}`;
+    time.textContent = `${formatTime(currentSeconds)} / ${formatTime(totalSeconds)}`;
+    if (recording.seek && !recording.seek.matches(":active")) {
+      recording.seek.max = String(totalSeconds);
+      recording.seek.value = String(currentSeconds);
+    }
   };
 
   const drawUnavailable = (context, width, height, message = "--") => {
@@ -282,7 +338,7 @@ const TGAMPlayback = (() => {
   };
 
   const drawFeature = (recording) => {
-    const currentMs = Math.max(0, recording.video.currentTime * 1000);
+    const currentMs = Math.max(0, getCurrentTime(recording) * 1000);
     const featurePoint = getSeriesPoint(recording.featureSeries, currentMs);
     const packetPoint = getSeriesPoint(recording.packetSeries, currentMs);
     const reliable = !packetPoint || !Number.isFinite(packetPoint.signal) || packetPoint.signal === 0;
@@ -314,8 +370,8 @@ const TGAMPlayback = (() => {
   };
 
   const removeRecording = (recording) => {
-    recording.video.pause();
-    URL.revokeObjectURL(recording.videoUrl);
+    pauseRecording(recording);
+    if (recording.videoUrl) URL.revokeObjectURL(recording.videoUrl);
     recording.element.remove();
     const index = recordings.indexOf(recording);
     if (index !== -1) recordings.splice(index, 1);
@@ -346,13 +402,32 @@ const TGAMPlayback = (() => {
     cameraPane.className = "playback-camera";
     const cameraLabel = document.createElement("span");
     cameraLabel.className = "playback-label";
-    cameraLabel.textContent = "카메라";
-    const video = document.createElement("video");
-    video.controls = true;
-    video.playsInline = true;
-    video.preload = "metadata";
-    video.src = videoUrl;
-    cameraPane.append(cameraLabel, video);
+    cameraLabel.textContent = pair.video ? "카메라" : "EEG 전용";
+    let video = null;
+    let seek = null;
+    if (pair.video) {
+      video = document.createElement("video");
+      video.controls = true;
+      video.playsInline = true;
+      video.preload = "metadata";
+      video.src = videoUrl;
+      cameraPane.append(cameraLabel, video);
+    } else {
+      const cameraEmpty = document.createElement("div");
+      cameraEmpty.className = "playback-camera-empty";
+      const cameraMessage = document.createElement("span");
+      cameraMessage.textContent = "카메라 없음";
+      seek = document.createElement("input");
+      seek.className = "playback-eeg-seek";
+      seek.type = "range";
+      seek.min = "0";
+      seek.max = String(parsed.samples.at(-1)?.timelineMs / 1000 || 0);
+      seek.step = "0.01";
+      seek.value = "0";
+      seek.setAttribute("aria-label", `${pair.key} EEG 재생 위치`);
+      cameraEmpty.append(cameraMessage, seek);
+      cameraPane.append(cameraLabel, cameraEmpty);
+    }
 
     const eegPane = document.createElement("div");
     eegPane.className = "playback-eeg";
@@ -393,14 +468,25 @@ const TGAMPlayback = (() => {
       key: pair.key,
       packetSeries,
       samples: parsed.samples,
+      seek,
       time,
       video,
       videoUrl,
+      clock: video ? null : {
+        currentTime: 0,
+        duration: parsed.samples.at(-1)?.timelineMs / 1000 || 0,
+        playing: false,
+        startedAt: 0,
+        startedFrom: 0,
+      },
     };
     remove.addEventListener("click", () => removeRecording(recording));
-    video.addEventListener("error", () => {
-      setMessage(`${pair.video.name} 영상을 재생할 수 없습니다.`, true);
-    });
+    if (seek) seek.addEventListener("input", () => setCurrentTime(recording, seek.value));
+    if (video) {
+      video.addEventListener("error", () => {
+        setMessage(`${pair.video.name} 영상을 재생할 수 없습니다.`, true);
+      });
+    }
     return recording;
   };
 
@@ -439,7 +525,7 @@ const TGAMPlayback = (() => {
         const parsed = parseRawEegText(await pair.raw.text());
         if (parsed.samples.length < 2) throw new Error(`${pair.raw.name}에 사용할 수 있는 Raw EEG 샘플이 없습니다.`);
         const packetSeries = pair.packets ? parsePacketNdjson(await pair.packets.text()) : [];
-        const videoUrl = URL.createObjectURL(pair.video);
+        const videoUrl = pair.video ? URL.createObjectURL(pair.video) : null;
         const recording = createRecordingElement(pair, parsed, packetSeries, videoUrl);
         recordings.push(recording);
         elements.list.append(recording.element);
@@ -462,10 +548,7 @@ const TGAMPlayback = (() => {
   };
 
   const playAll = async () => {
-    const results = await Promise.allSettled(recordings.map((recording) => {
-      if (recording.video.ended) recording.video.currentTime = 0;
-      return recording.video.play();
-    }));
+    const results = await Promise.allSettled(recordings.map(playRecording));
     if (results.some((result) => result.status === "rejected")) {
       setMessage("일부 영상을 재생할 수 없습니다.", true);
     } else {
@@ -474,14 +557,14 @@ const TGAMPlayback = (() => {
   };
 
   const pauseAll = () => {
-    recordings.forEach((recording) => recording.video.pause());
+    recordings.forEach(pauseRecording);
     setMessage("재생을 일시정지했습니다.");
   };
 
   const restartAll = () => {
     recordings.forEach((recording) => {
-      recording.video.pause();
-      recording.video.currentTime = 0;
+      pauseRecording(recording);
+      setCurrentTime(recording, 0);
       drawWaveform(recording);
       drawFeature(recording);
     });

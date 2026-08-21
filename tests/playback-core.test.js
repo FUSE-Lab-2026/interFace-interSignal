@@ -6,12 +6,16 @@ const files = [
   { name: "session-a-raw-eeg.txt" },
   { name: "session-a-tgam-packets.ndjson" },
   { name: "session-b-camera-240p.webm" },
+  { name: "session-c-raw-eeg.txt" },
+  { name: "session-c-tgam-packets.ndjson" },
   { name: "notes.md" },
 ];
 const paired = PlaybackCore.pairRecordingFiles(files);
-assert.equal(paired.complete.length, 1);
+assert.equal(paired.complete.length, 2);
 assert.equal(paired.complete[0].key, "session-a");
 assert.equal(paired.complete[0].packets.name, "session-a-tgam-packets.ndjson");
+assert.equal(paired.complete[1].key, "session-c");
+assert.equal(paired.complete[1].video, null);
 assert.equal(paired.incomplete.length, 1);
 assert.equal(paired.incomplete[0].key, "session-b");
 assert.equal(paired.ignored.length, 1);

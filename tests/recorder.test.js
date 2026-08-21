@@ -208,7 +208,7 @@ const recorder = vm.runInContext("TGAMSessionRecorder", context);
     packet: { raw: -100 },
   });
   await recorder.stop("test");
-  assert.equal(recorder.getState(), "saved");
+  assert.equal(recorder.getState(), "saved", elements["#record-message"].textContent);
 
   const names = Array.from(files.keys());
   assert.equal(names.length, 1);
@@ -245,9 +245,39 @@ const recorder = vm.runInContext("TGAMSessionRecorder", context);
   assert.equal(manifest.video.target.width, 134);
   assert.equal(manifest.video.target.height, 100);
   assert.equal(manifest.video.target.audio, false);
+  assert.equal(manifest.video.enabled, true);
   assert.equal(manifest.plannedDurationMs, 30000);
   assert.equal(manifest.packetFormat.checksumValidFramesOnly, true);
   assert.equal(manifest.files.archive, archiveName);
+
+  await elements["#enable-camera"].trigger("click");
+  assert.equal(cameraTrack.readyState, "ended");
+  await new Promise((resolve) => setTimeout(resolve, 2));
+  await elements["#start-recording-30"].trigger("click");
+  assert.equal(recorder.getState(), "recording");
+  clock = 1500;
+  frameListener({
+    payloadLength: 4,
+    checksum: 74,
+    payloadBytes: [128, 2, 255, 206],
+    frameBytes: [170, 170, 4, 128, 2, 255, 206, 74],
+    packet: { raw: -50 },
+  });
+  await recorder.stop("eeg_only_test");
+  assert.equal(recorder.getState(), "saved", elements["#record-message"].textContent);
+  const finalNames = Array.from(files.keys());
+  assert.equal(finalNames.length, 2);
+  const eegArchiveName = finalNames.find((name) => name !== archiveName);
+  const eegEntries = await SessionZip.extractArchive(new Blob(files.get(eegArchiveName)));
+  assert.equal(eegEntries.length, 3);
+  assert(!eegEntries.some((entry) => entry.name.endsWith(".webm")));
+  const eegManifestEntry = eegEntries.find((entry) => entry.name.endsWith("-session.json"));
+  const eegManifest = JSON.parse(new TextDecoder().decode(eegManifestEntry.data));
+  assert.equal(eegManifest.video.enabled, false);
+  assert.equal(eegManifest.video.target, null);
+  assert.equal(eegManifest.video.recorder, null);
+  assert.equal(eegManifest.files.video, null);
+  assert(elements["#record-message"].textContent.includes("EEG 전용"));
   console.log("Session recorder tests passed");
 })().catch((error) => {
   console.error(error);

@@ -10,6 +10,13 @@ assert.deepEqual(RecorderCore.createFileNames(baseName), {
   video: "2026-08-11_090705_042-camera-100p.webm",
   manifest: "2026-08-11_090705_042-session.json",
 });
+assert.deepEqual(RecorderCore.createFileNames(baseName, "webm", false), {
+  archive: "2026-08-11_090705_042.eegsession.zip",
+  packets: "2026-08-11_090705_042-tgam-packets.ndjson",
+  raw: "2026-08-11_090705_042-raw-eeg.txt",
+  video: null,
+  manifest: "2026-08-11_090705_042-session.json",
+});
 
 const frameRecord = RecorderCore.createFrameRecord({
   payloadLength: 4,

@@ -112,13 +112,15 @@ const TGAMSessionRecorder = (() => {
 
   const updateControls = () => {
     const busy = state === "preparing" || state === "recording" || state === "stopping";
-    const ready = directoryHandle && cameraReady() && TGAMSerialSource.isConnected();
+    const ready = directoryHandle && TGAMSerialSource.isConnected();
     elements.chooseFolder.disabled = busy || !("showDirectoryPicker" in window);
     elements.enableCamera.disabled = busy || cameraStarting || !navigator.mediaDevices?.getUserMedia;
     elements.enableCamera.textContent = cameraStarting
       ? "카메라 연결 중..."
       : cameraReady() ? "카메라 끄기" : "카메라 켜기";
-    const startDisabled = busy || !ready || typeof MediaRecorder === "undefined";
+    const videoUnavailable = cameraReady()
+      && (typeof MediaRecorder === "undefined" || !elements.captureCanvas.captureStream);
+    const startDisabled = busy || cameraStarting || !ready || videoUnavailable;
     elements.start30.disabled = startDisabled;
     elements.start60.disabled = startDisabled;
     elements.stop.disabled = state !== "recording";
@@ -379,11 +381,8 @@ const TGAMSessionRecorder = (() => {
       setMessage("먼저 녹화 파일을 저장할 폴더를 선택해 주세요.", true);
       return;
     }
-    if (!cameraReady()) {
-      setMessage("녹화를 시작하기 전에 카메라를 켜 주세요.", true);
-      return;
-    }
-    if (typeof MediaRecorder === "undefined" || !elements.captureCanvas.captureStream) {
+    const cameraEnabled = cameraReady();
+    if (cameraEnabled && (typeof MediaRecorder === "undefined" || !elements.captureCanvas.captureStream)) {
       setMessage("이 브라우저에서는 영상을 녹화할 수 없습니다.", true);
       return;
     }
@@ -393,7 +392,7 @@ const TGAMSessionRecorder = (() => {
     }
 
     setState("preparing");
-    setMessage("EEG와 카메라를 함께 녹화할 준비를 하고 있습니다...");
+    setMessage(cameraEnabled ? "EEG와 카메라를 함께 녹화할 준비를 하고 있습니다..." : "EEG를 녹화할 준비를 하고 있습니다...");
     packetBuffer = "";
     rawBuffer = "";
     writeFailure = null;
@@ -403,7 +402,7 @@ const TGAMSessionRecorder = (() => {
 
     const startedAt = new Date();
     const baseName = TGAMRecorderCore.createBaseName(startedAt);
-    const files = TGAMRecorderCore.createFileNames(baseName);
+    const files = TGAMRecorderCore.createFileNames(baseName, "webm", cameraEnabled);
     session = {
       sessionId: `${baseName}-${crypto.randomUUID().slice(0, 8)}`,
       files,
@@ -415,9 +414,10 @@ const TGAMSessionRecorder = (() => {
       videoBytes: 0,
       videoMimeType: "",
       actualVideoBitsPerSecond: 0,
+      cameraEnabled,
       plannedDurationMs,
       initialStats: null,
-      cameraInput: cameraInputSettings(),
+      cameraInput: cameraEnabled ? cameraInputSettings() : null,
     };
 
     elements.archiveFile.textContent = files.archive;
@@ -426,10 +426,12 @@ const TGAMSessionRecorder = (() => {
       queues = {
         packets: await openQueue(files.packets),
         raw: await openQueue(files.raw),
-        video: await openQueue(files.video),
       };
-      createMediaRecorder();
-      if (!cameraReady()) throw new Error("파일을 준비하는 동안 카메라가 중지되었습니다.");
+      if (cameraEnabled) {
+        queues.video = await openQueue(files.video);
+        createMediaRecorder();
+        if (!cameraReady()) throw new Error("파일을 준비하는 동안 카메라가 중지되었습니다.");
+      }
       if (!TGAMSerialSource.isConnected()) throw new Error("파일을 준비하는 동안 TGAM 연결이 끊어졌습니다.");
       session.startedUnixMs = Date.now();
       session.startedPerformanceMs = performance.now();
@@ -444,14 +446,18 @@ const TGAMSessionRecorder = (() => {
         elapsed_ms: 0,
         files,
         serial: SERIAL,
-        video: VIDEO,
+        video: cameraEnabled ? VIDEO : null,
         planned_duration_ms: plannedDurationMs,
       });
       flushTextBuffers();
       frameUnsubscribe = TGAMSerialSource.onFrame(recordFrame);
-      mediaRecorder.start(1000);
+      if (mediaRecorder) mediaRecorder.start(1000);
       setState("recording");
-      setMessage(`${plannedDurationMs / 1000}초 동안 TGAM 패킷, Raw EEG, 저해상도 영상을 녹화합니다.`);
+      setMessage(
+        cameraEnabled
+          ? `${plannedDurationMs / 1000}초 동안 TGAM 패킷, Raw EEG, 저해상도 영상을 녹화합니다.`
+          : `${plannedDurationMs / 1000}초 동안 TGAM 패킷과 Raw EEG를 녹화합니다.`
+      );
       const stopDelayMs = Math.max(
         0,
         plannedDurationMs - (performance.now() - session.startedPerformanceMs)
@@ -500,7 +506,7 @@ const TGAMSessionRecorder = (() => {
   };
 
   const createSessionArchive = async (files) => {
-    const componentNames = [files.packets, files.raw, files.video, files.manifest];
+    const componentNames = [files.packets, files.raw, files.video, files.manifest].filter(Boolean);
     const entries = [];
     for (const name of componentNames) {
       const handle = await directoryHandle.getFileHandle(name);
@@ -558,23 +564,19 @@ const TGAMSessionRecorder = (() => {
     });
     flushTextBuffers();
 
-    if (mediaRecorder?.state !== "inactive") {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
       mediaRecorder.stop();
       await mediaStopPromise;
     }
-    const recorderDetails = {
+    const recorderDetails = session.cameraEnabled ? {
       mimeType: session.videoMimeType,
       requestedBitsPerSecond: VIDEO.bitsPerSecond,
       actualBitsPerSecond: session.actualVideoBitsPerSecond,
       bytes: session.videoBytes,
-    };
+    } : null;
     cleanupCaptureStream();
 
-    const closingResults = await Promise.allSettled([
-      queues.packets.close(),
-      queues.raw.close(),
-      queues.video.close(),
-    ]);
+    const closingResults = await Promise.allSettled(Object.values(queues).map((queue) => queue.close()));
     const closeFailure = closingResults.find((result) => result.status === "rejected");
     queues = null;
     if (closeFailure || writeFailure) throw closeFailure?.reason || writeFailure;
@@ -591,7 +593,8 @@ const TGAMSessionRecorder = (() => {
       serialSessionId: session.serialSessionId,
       serial: SERIAL,
       video: {
-        target: VIDEO,
+        enabled: session.cameraEnabled,
+        target: session.cameraEnabled ? VIDEO : null,
         input: session.cameraInput,
         recorder: recorderDetails,
       },
@@ -621,7 +624,8 @@ const TGAMSessionRecorder = (() => {
     setState("saved");
     setMessage(
       `TGAM 패킷 ${session.frameCount}개와 Raw EEG 샘플 ${session.rawSampleCount}개를 `
-      + `${session.files.archive} 파일 하나로 저장했습니다 (${Math.ceil(archiveBytes / 1024)} KB).`
+      + `${session.files.archive} 파일 하나로 저장했습니다`
+      + `${session.cameraEnabled ? "" : " (EEG 전용)"} (${Math.ceil(archiveBytes / 1024)} KB).`
     );
   };
 
@@ -660,9 +664,8 @@ const TGAMSessionRecorder = (() => {
     setCameraStatus(window.isSecureContext === false ? "HTTPS 필요" : "카메라 사용 불가");
     setMessage(
       window.isSecureContext === false
-        ? "카메라를 사용하려면 localhost 또는 HTTPS로 접속해야 합니다."
-        : "이 브라우저에서는 카메라를 사용할 수 없습니다.",
-      true
+        ? "카메라는 사용할 수 없지만 EEG만 녹화할 수 있습니다."
+        : "이 브라우저에서는 카메라를 사용할 수 없습니다. EEG만 녹화할 수 있습니다."
     );
   }
   updateControls();

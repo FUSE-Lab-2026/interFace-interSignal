@@ -3,11 +3,11 @@
 ## 문서 정보
 
 - 마지막 업데이트: 2026-08-21
-- 현재 단계: camera 선택형 EEG 녹화와 단일 `.eegsession.zip` 재생 구현 완료, 실제 TGAM/카메라 통합 검증 전
+- 현재 단계: 단일 `.eegsession.zip` 녹화/재생과 재생 카드 03-06 선택 구현 완료, 실제 TGAM/카메라 통합 검증 전
 - 저장소: `FUSE-Lab-2026/interFace-interSignal`
 - 기준 브랜치: `main`
 - 문서 역할: 데이터 규격, MVP 범위, 구현 상태, 검증 상태를 관리하는 단일 기준 문서
-- 직전 규격: `backup/project-2026-08-21-pre-eeg-only-recording.md`
+- 직전 규격: `backup/project-2026-08-21-pre-session-zip.md`
 - 초기 문서: `backup/project-2026-08-11-legacy-tgam-eeg-webviz.md`
 
 이 파일은 데이터 계약, 신호 계산, UI 범위, 완료 상태가 바뀔 때 코드와 함께
@@ -21,9 +21,8 @@ TGAM EEG를 처음 접하는 워크숍 참여자가 용어를 먼저 배우기�
 - 프로젝터용 MacBook에서 TGAM 시리얼 데이터를 직접 수신한다.
 - 신호 이름과 공식 설명을 숨긴 상태로 여섯 개의 시각화를 제공한다.
 - 참여자는 카드를 켜고 끄며 신호의 반응 차이를 비교한다.
-- 같은 session의 TGAM frame과 raw EEG를 기록하고, 선택한 경우 저용량 webcam
-  영상도 함께 기록한다.
-- camera 포함 session과 EEG-only session을 최대 3개까지 비교 재생한다.
+- 같은 session의 TGAM frame, raw EEG, 저용량 webcam 영상을 함께 기록한다.
+- 녹화한 camera와 raw EEG를 나란히 재생하며 최대 3개 session을 비교한다.
 - 의료 진단, 임상 판정, 정량 뇌 상태 측정을 목적으로 하지 않는다.
 
 ## 현재 MVP
@@ -42,10 +41,10 @@ TGAM EEG를 처음 접하는 워크숍 참여자가 용어를 먼저 배우기�
 - 신호 계산과 시각 매핑 기록
 - 같은 페이지 안의 `Signals`, `Record`, `Playback` tab
 - 사용자 지정 폴더에 TGAM frame NDJSON과 raw EEG TXT streaming 저장
-- 선택형 134 x 100, 8 FPS, audio 없는 저용량 webcam WebM 저장
+- 134 x 100, 8 FPS, audio 없는 저용량 webcam WebM 저장
 - 30초 또는 1분 고정 길이 녹화와 자동 finalize
 - session 설정과 parser 통계를 담은 JSON manifest 저장
-- NDJSON/TXT/manifest와 선택형 WebM을 검증한 단일 `.eegsession.zip`으로 최종 저장
+- NDJSON/TXT/WebM/manifest를 검증한 단일 `.eegsession.zip`으로 최종 저장
 - 최대 3개 `.eegsession.zip`의 browser-only 비교 재생과 legacy loose file 지원
 - Playback에서 Raw EEG 옆에 카드 03-06 중 하나를 선택해 동시 표시
 - `public/` 정적 파일을 GitHub Pages에 자동 배포
@@ -69,14 +68,14 @@ TGAM serial bytes
      -> browser-derived signals -> p5.js cards
      -> frame NDJSON + raw EEG TXT writer
 
-Optional web camera -> preview -> 134 x 100 canvas -> MediaRecorder -> WebM writer
+Web camera -> preview -> 134 x 100 canvas -> MediaRecorder -> WebM writer
 
-NDJSON + TXT + manifest (+ optional WebM) -> CRC 검증된 eegsession ZIP -> 임시 파일 삭제
+NDJSON + TXT + WebM + manifest -> CRC 검증된 eegsession ZIP -> 임시 파일 삭제
 
 Local eegsession ZIP 또는 legacy loose files
   -> browser memory에서 ZIP 추출 또는 filename session pair
-  -> video currentTime 또는 EEG-only clock 기반 4초 raw window + 선택 카드 03-06
-  -> 최대 3개 camera 또는 camera-empty/raw/selected-card row
+  -> video currentTime 기반 4초 raw window + 선택 카드 03-06
+  -> 최대 3개 camera/raw/selected-card row
 ```
 
 Node는 `public/`을 `localhost`에 제공하는 정적 서버 역할만 한다. Node가 시리얼
@@ -148,7 +147,7 @@ raw EEG에서 표준 5개 band를 직접 계산한다.
 
 | 파일 | 규격 |
 |---|---|
-| `*.eegsession.zip` | 필수 3개와 선택형 video component를 stored 방식으로 담은 standard ZIP, entry별 CRC-32 포함 |
+| `*.eegsession.zip` | 아래 네 component를 stored 방식으로 담은 standard ZIP, entry별 CRC-32 포함 |
 
 ZIP 내부 component:
 
@@ -156,13 +155,13 @@ ZIP 내부 component:
 |---|---|
 | `*-tgam-packets.ndjson` | checksum-valid physical frame, timestamp, frame hex, decoded fields, transport stats |
 | `*-raw-eeg.txt` | unfiltered raw EEG, tab-separated sample/timestamp/value rows |
-| `*-camera-100p.webm` | 선택형, 134 x 100, 8 FPS, requested 50 kbps, audio 없음 |
+| `*-camera-100p.webm` | 134 x 100, 8 FPS, requested 50 kbps, audio 없음 |
 | `*-session.json` | 설정, 파일명, 시간, count, video bytes, parser stats, stop reason |
 
 Base name은 `YYYY-MM-DD_HHmmss_SSS` 형식이다. 녹화 중 component는 선택한
 폴더에 File System Access API로 직접 stream한다. stop 후 manifest를 쓴 다음
 `YYYY-MM-DD_HHmmss_SSS.eegsession.zip`을 만들고 다시 열어 filename과 CRC를
-검증한다. 검증 성공 후 3개 또는 4개 component를 삭제하므로 최종적으로 ZIP 하나만 남는다.
+검증한다. 검증 성공 후 네 component를 삭제하므로 최종적으로 ZIP 하나만 남는다.
 ZIP 생성/검증 실패 시 복구를 위해 component를 삭제하지 않는다.
 
 ### TGAM frame NDJSON
@@ -182,10 +181,6 @@ ZIP 생성/검증 실패 시 복구를 위해 component를 삭제하지 않는�
 - TGAM raw 값에 filtering, smoothing, interpolation, resampling을 적용하지 않음
 
 ### Webcam WebM
-
-카메라는 선택 사항이다. 카메라를 켜지 않아도 TGAM 연결과 저장 폴더가 준비되면
-30초/1분 EEG-only 녹화를 시작할 수 있다. EEG-only manifest는
-`video.enabled: false`이며 video filename, target, input, recorder 값은 `null`이다.
 
 | 항목 | 규격 |
 |---|---|
@@ -332,7 +327,6 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - recorder card는 folder, 30초/1분 시작, 녹화 중지, 남은 시간, frame/raw count를 표시한다.
 - 모든 tab, TGAM 연결, camera, folder/record, Playback action button과 상태/안내/오류 문구는 한국어로 표시한다.
 - camera card는 녹화하지 않는 audio 항목을 별도로 표시하지 않으며 해상도, 프레임, 영상 bitrate만 표시한다.
-- 카메라를 켜지 않은 상태에서도 TGAM과 저장 폴더가 준비되면 녹화 버튼을 활성화한다.
 - camera preview는 최대 190 px 너비로 제한하고 recorder status는 1행 4열로 표시해
   300 px 높이 card와 짧고 넓은 browser viewport에서도 내부 요소가 넘치지 않게 한다.
 - Playback은 session별 camera, raw EEG, 선택 카드 하나를 한 row에 표시한다.
@@ -349,7 +343,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - ZIP 처리: browser memory에서 Store 또는 Deflate entry 추출 및 CRC-32 검증, server 전송 없음
 - 수동 ZIP: root 또는 한 folder 안의 component 허용, Finder `__MACOSX`/`._*`/`.DS_Store` 무시
 - 미지원: encrypted, Zip64, split archive, unsafe path, 중복 basename, Store/Deflate 외 방식
-- ZIP 내부 필수 파일: raw EEG TXT, packet NDJSON. camera WebM은 선택 사항이다.
+- ZIP 내부 필수 pair: camera WebM, raw EEG TXT, packet NDJSON
 - legacy 입력: 아래 suffix의 loose files도 계속 지원
 - pair key: `-camera-100p.webm` 또는 `-camera-240p.webm`, `-raw-eeg.txt`,
   optional `-tgam-packets.ndjson` 앞의 공통 filename stem
@@ -363,8 +357,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
   사용. 512 Hz에서는 sample 간격이 1.953125 ms
 - sample rate header가 없거나 유효하지 않으면 `elapsed_ms` 사용
 - timeline 복원은 x 좌표만 바꾸며 raw 값을 수정하거나 sample을 추가/삭제하지 않음
-- 현재 EEG 시각화 시간: camera session은 `video.currentTime * 1000`, EEG-only
-  session은 raw timeline duration을 사용하는 monotonic browser clock
+- 현재 EEG 시각화 시간: 해당 session의 `video.currentTime * 1000`
 - 표시 window: 4,000 ms
 - 일반 window 위치: current time 이전 3,000 ms부터 이후 최대 1,000 ms
 - 표시 clipping: `-2048`에서 `+2048`; 원본 sample은 변경하지 않음
@@ -443,14 +436,10 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] camera 사양에서 녹화하지 않는 오디오 꺼짐 항목 제거
 - [x] Playback 불러오기 안내를 `ZIP 파일 올려주세요`로 간소화
 - [x] `전체 재생`을 `재생`, `녹화 불러오기`를 `녹화 파일 불러오기`로 변경
-- [x] 필수 3개와 선택형 video component를 단일 `.eegsession.zip`으로 묶고 CRC 검증 후 임시 파일 삭제
+- [x] 네 component를 단일 `.eegsession.zip`으로 묶고 CRC 검증 후 임시 파일 삭제
 - [x] Playback에서 최대 3개 session ZIP을 browser-only로 추출해 기존 pair parser에 전달
 - [x] legacy loose TXT/NDJSON/WebM Playback 입력 유지
 - [x] Finder/일반 ZIP 도구의 Deflate 및 nested folder 입력 지원
-- [x] camera 없이 TGAM packet/TXT/manifest만 기록하는 EEG-only session 구현
-- [x] EEG-only ZIP의 `video.enabled: false` manifest와 3-entry archive 자동 검증
-- [x] Playback에서 EEG-only session의 synthetic clock, seek slider, `카메라 없음` 상태 구현
-- [x] 실제 30초 raw/NDJSON EEG-only ZIP browser load와 0.0초에서 1.8초 재생 진행 확인
 - [x] 1,440 x 900 및 500 x 900 Playback/Record overflow와 responsive stack 확인
 - [x] `public/` 전용 GitHub Pages Actions workflow 추가
 
@@ -466,7 +455,6 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [ ] 실제 신호에서 raw EEG ±2,048 표시 범위가 워크숍에 적절한지 확인
 - [ ] Chrome에서 recording folder permission과 지속적인 file write 확인
 - [ ] 실제 webcam permission, 134 x 100 WebM 재생, file size 확인
-- [ ] 실제 TGAM으로 camera 없이 30초/1분 EEG-only ZIP 생성 및 재생 확인
 - [ ] 실제 TGAM과 webcam 동시 30초/1분 recording의 자동 종료와 timestamp/count 확인
 - [ ] serial 또는 camera 중단 시 component와 session ZIP이 정상 finalize되는지 확인
 - [ ] Chrome native video seek 후 waveform 위치 변경을 수동 확인
@@ -483,8 +471,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 5. 카드 03은 최초 2초 후 약 0.25초마다 갱신되고 카드 04는 실제 TGAM packet을 따라 갱신된다.
 6. 모든 visibility checkbox가 대응 카드만 표시하거나 숨긴다.
 7. disconnect 후 stale live 값이 현재 값처럼 표시되지 않는다.
-8. Record tab에서 30초/1분 선택 후 camera 포함 또는 EEG-only 단일 session ZIP을
-   만들고 재생에서 다시 열 수 있다.
+8. Record tab에서 30초/1분 선택 후 단일 session ZIP을 만들고 재생에서 다시 열 수 있다.
 9. 1분 동시 녹화에서 browser memory가 지속적으로 증가하지 않는다.
 10. Playback에서 최대 3개 session을 열고 각 video seek에 raw EEG와 선택 카드 03-06이 동기화된다.
 11. `npm test`가 통과한다.
@@ -506,7 +493,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
   secure context가 필요하다.
 - writable stream이 close되기 전 browser/OS가 비정상 종료되면 현재 session file이
   불완전할 수 있다.
-- ZIP finalization은 3개 또는 4개 component와 archive Blob을 일시적으로 memory에 올린다. 현재
+- ZIP finalization은 네 component와 archive Blob을 일시적으로 memory에 올린다. 현재
   30초/1분 및 100p video 범위에서는 허용하지만 실제 1분 session에서 memory를 확인해야 한다.
 - 앱이 만드는 ZIP은 dependency-free stored entry를 사용한다. Playback은 Store와
   Deflate를 읽지만 Zip64/encrypted/split archive는 지원하지 않는다.

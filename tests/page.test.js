@@ -77,7 +77,10 @@ for (const id of [
 }
 assert(playback.includes("pairRecordingFiles(expandedFiles)"));
 assert(playback.includes("TGAMSessionZip.extractArchive(file)"));
-assert(playback.includes("video.currentTime * 1000"));
+assert(playback.includes("const getCurrentTime ="));
+assert(playback.includes("playback-camera-empty"));
+assert(playback.includes("playback-eeg-seek"));
+assert(playback.includes("recording.clock.playing = true"));
 assert(playback.includes("MAX_RECORDINGS"));
 assert.equal((html.match(/data-playback-card=/g) || []).length, 4);
 for (const mode of ["bands", "esense", "movement", "eyes"]) {
@@ -105,6 +108,8 @@ for (const text of ["TGAM 연결", "연결 해제", "연결 중...", "TGAM 다�
 }
 assert(!html.includes("<dt>오디오</dt>"));
 assert(recorder.includes('recording: "녹화 중"'));
+assert(html.includes("카메라는 선택 사항입니다."));
+assert(recorder.includes("const cameraEnabled = cameraReady()"));
 assert(rootHtml.includes('new URL("./public/", window.location.href)'));
 assert(rootHtml.includes("target.hash = window.location.hash"));
 
