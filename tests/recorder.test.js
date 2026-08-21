@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const RecorderCore = require("../public/recorder-core");
+const SessionZip = require("../public/session-zip");
 
 class FakeElement {
   constructor() {
@@ -43,10 +44,7 @@ const ids = [
   "record-raw",
   "record-folder",
   "record-message",
-  "packets-file",
-  "raw-file",
-  "video-file",
-  "manifest-file",
+  "archive-file",
 ];
 const elements = Object.fromEntries(ids.map((id) => [`#${id}`, new FakeElement()]));
 
@@ -77,6 +75,9 @@ const directoryHandle = {
   async getFileHandle(name) {
     if (!files.has(name)) files.set(name, []);
     return {
+      async getFile() {
+        return new Blob(files.get(name) || []);
+      },
       async createWritable() {
         return {
           async write(data) {
@@ -89,6 +90,9 @@ const directoryHandle = {
         };
       },
     };
+  },
+  async removeEntry(name) {
+    files.delete(name);
   },
 };
 
@@ -171,6 +175,7 @@ const context = vm.createContext({
   },
   performance: { now: () => clock },
   TGAMRecorderCore: RecorderCore,
+  TGAMSessionZip: SessionZip,
   TGAMSerialSource: source,
   window: windowObject,
 });
@@ -181,13 +186,6 @@ vm.runInContext(
   context
 );
 const recorder = vm.runInContext("TGAMSessionRecorder", context);
-
-const fileText = async (name) => {
-  const parts = files.get(name) || [];
-  const strings = [];
-  for (const part of parts) strings.push(part instanceof Blob ? await part.text() : String(part));
-  return strings.join("");
-};
 
 (async () => {
   await elements["#choose-folder"].trigger("click");
@@ -213,25 +211,34 @@ const fileText = async (name) => {
   assert.equal(recorder.getState(), "saved");
 
   const names = Array.from(files.keys());
-  const packetsName = names.find((name) => name.endsWith("-tgam-packets.ndjson"));
-  const rawName = names.find((name) => name.endsWith("-raw-eeg.txt"));
-  const videoName = names.find((name) => name.endsWith("-camera-100p.webm"));
-  const manifestName = names.find((name) => name.endsWith("-session.json"));
+  assert.equal(names.length, 1);
+  const archiveName = names.find((name) => name.endsWith(".eegsession.zip"));
+  assert(archiveName);
+  assert.equal(elements["#archive-file"].textContent, archiveName);
+  const archiveBlob = new Blob(files.get(archiveName));
+  const archiveEntries = await SessionZip.extractArchive(archiveBlob);
+  const archivedFiles = new Map(archiveEntries.map((entry) => [entry.name, entry.data]));
+  const archivedName = (suffix) => Array.from(archivedFiles.keys()).find((name) => name.endsWith(suffix));
+  const packetsName = archivedName("-tgam-packets.ndjson");
+  const rawName = archivedName("-raw-eeg.txt");
+  const videoName = archivedName("-camera-100p.webm");
+  const manifestName = archivedName("-session.json");
   assert(packetsName && rawName && videoName && manifestName);
 
-  const packetText = await fileText(packetsName);
+  const decode = (name) => new TextDecoder().decode(archivedFiles.get(name));
+  const packetText = decode(packetsName);
   assert(packetText.includes('"event":"tgam_frame"'));
   assert(packetText.includes('"frame_hex":"aaaa048002ff9c7c"'));
   assert(packetText.includes('"event":"recording_stop"'));
   assert(packetText.includes('"planned_duration_ms":30000'));
 
-  const rawText = await fileText(rawName);
+  const rawText = decode(rawName);
   assert(rawText.includes("sample_index\telapsed_ms\tunix_ms\traw"));
   assert(rawText.includes("0\t250\t"));
   assert(rawText.endsWith("\t-100\n"));
-  assert.equal(await fileText(videoName), "mock-video");
+  assert.equal(decode(videoName), "mock-video");
 
-  const manifest = JSON.parse(await fileText(manifestName));
+  const manifest = JSON.parse(decode(manifestName));
   assert.equal(manifest.stopReason, "test");
   assert.equal(manifest.totals.frames, 1);
   assert.equal(manifest.totals.rawSamples, 1);
@@ -240,6 +247,7 @@ const fileText = async (name) => {
   assert.equal(manifest.video.target.audio, false);
   assert.equal(manifest.plannedDurationMs, 30000);
   assert.equal(manifest.packetFormat.checksumValidFramesOnly, true);
+  assert.equal(manifest.files.archive, archiveName);
   console.log("Session recorder tests passed");
 })().catch((error) => {
   console.error(error);

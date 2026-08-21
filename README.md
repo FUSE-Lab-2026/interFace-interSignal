@@ -81,14 +81,14 @@ only Signal Contact and Raw EEG, then adds one camera card and one recording
 control card. The four cards form a centered 2 x 2 grid on larger screens and
 stack in the same order on narrow screens.
 
-Each session writes directly to the selected folder:
+Each completed session leaves one file in the selected folder:
 
-- `*-tgam-packets.ndjson`: checksum-valid physical TGAM frames, frame hex,
-  timestamps, decoded fields, and transport-stat events
-- `*-raw-eeg.txt`: unfiltered raw values with sample index and two timestamps
-- `*-camera-100p.webm`: silent 134 x 100, 8 FPS video at a requested 50 kbps
-- `*-session.json`: recording settings, filenames, counts, duration, and final
-  parser statistics
+- `*.eegsession.zip`: one standard, uncompressed ZIP containing the packet
+  NDJSON, raw EEG TXT, silent 100p WebM, and session JSON manifest
+
+The component files stream directly to disk while recording. After all streams
+close, the app creates and CRC-validates the ZIP, then removes the temporary
+components. If ZIP finalization fails, the component files remain for recovery.
 
 The app requests a broadly supported 640 x 480 camera input and waits for a real
 preview frame. The recorded stream is independently downsampled through a
@@ -99,10 +99,9 @@ a slightly different actual video bitrate than requested.
 ## 재생 tab
 
 `재생` or `#playback` compares the recorded camera and raw EEG in the
-browser. Press **녹화 파일 불러오기** and select the matching camera WebM, raw
-EEG TXT, and packet NDJSON files together. All three files are requested so the
-raw waveform, native Attention/Meditation, and contact-quality gating are all
-available. The shared filename stem identifies the session.
+browser. Press **녹화 파일 불러오기** and select an `.eegsession.zip` produced
+by the Record tab. The ZIP is extracted locally in browser memory; it is not
+uploaded to a server. Up to three ZIP files can be selected together.
 
 - Up to three sessions can be loaded at once.
 - Each session displays camera, raw EEG, and one selected signal card.
@@ -124,9 +123,10 @@ available. The shared filename stem identifies the session.
   sample-clock reconstruction changes only their display positions.
 
 Current `camera-100p.webm` and earlier `camera-240p.webm` filenames are both
-accepted. Cards 03, 05, and 06 are reconstructed from raw EEG. Card 04 requires
-packet NDJSON; older WebM/TXT-only recordings show it as unavailable. Files stay
-local and are loaded through browser object URLs.
+accepted through the legacy loose-file input. Cards 03, 05, and 06 are
+reconstructed from raw EEG. Card 04 requires packet NDJSON; older WebM/TXT-only
+recordings show it as unavailable. Files stay local and are loaded through
+browser object URLs.
 
 Exact formulas, FFT windows, frequency ranges, and limitations are documented in
 [PROCESSING.md](PROCESSING.md).
@@ -147,7 +147,9 @@ TGAM serial bytes
 
 Web camera -> preview -> 134 x 100 canvas -> MediaRecorder -> WebM file
 
-local camera WebM + raw EEG TXT -> browser playback -> synchronized video/waveform
+NDJSON + TXT + WebM + manifest -> verified eegsession ZIP
+
+eegsession ZIP -> browser extraction -> synchronized video/waveform/cards
 ```
 
 Node only serves static files on localhost. It does not access the serial port,
@@ -175,6 +177,7 @@ public/sketch.js           responsive p5 cards, visibility, and visual mappings
 public/style.css           page and serial-button styling
 public/recorder-core.js    recording constants and pure file formatting
 public/recorder.js         folder, camera, TGAM, and session recording lifecycle
+public/session-zip.js      dependency-free ZIP creation, CRC check, and extraction
 public/playback-core.js    playback file pairing, TXT parsing, and time windows
 public/playback.js         multi-session video and raw EEG playback
 public/tabs.js             hash-addressable in-app view switching

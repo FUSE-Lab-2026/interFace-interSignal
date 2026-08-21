@@ -3,11 +3,11 @@
 ## 문서 정보
 
 - 마지막 업데이트: 2026-08-21
-- 현재 단계: 단일 `.eegsession.zip` 녹화/재생과 재생 카드 03-06 선택 구현 완료, 실제 TGAM/카메라 통합 검증 전
+- 현재 단계: 신호/녹화/재생 전체 버튼 한국어화와 재생 카드 03-06 선택 구현 완료, 실제 TGAM/카메라 통합 검증 전
 - 저장소: `FUSE-Lab-2026/interFace-interSignal`
 - 기준 브랜치: `main`
 - 문서 역할: 데이터 규격, MVP 범위, 구현 상태, 검증 상태를 관리하는 단일 기준 문서
-- 직전 규격: `backup/project-2026-08-21-pre-session-zip.md`
+- 직전 규격: `backup/project-2026-08-21-pre-playback-cards.md`
 - 초기 문서: `backup/project-2026-08-11-legacy-tgam-eeg-webviz.md`
 
 이 파일은 데이터 계약, 신호 계산, UI 범위, 완료 상태가 바뀔 때 코드와 함께
@@ -44,8 +44,7 @@ TGAM EEG를 처음 접하는 워크숍 참여자가 용어를 먼저 배우기�
 - 134 x 100, 8 FPS, audio 없는 저용량 webcam WebM 저장
 - 30초 또는 1분 고정 길이 녹화와 자동 finalize
 - session 설정과 parser 통계를 담은 JSON manifest 저장
-- NDJSON/TXT/WebM/manifest를 검증한 단일 `.eegsession.zip`으로 최종 저장
-- 최대 3개 `.eegsession.zip`의 browser-only 비교 재생과 legacy loose file 지원
+- 최대 3개 camera WebM/raw EEG TXT/optional packet NDJSON session의 browser-only 비교 재생
 - Playback에서 Raw EEG 옆에 카드 03-06 중 하나를 선택해 동시 표시
 - `public/` 정적 파일을 GitHub Pages에 자동 배포
 
@@ -70,10 +69,8 @@ TGAM serial bytes
 
 Web camera -> preview -> 134 x 100 canvas -> MediaRecorder -> WebM writer
 
-NDJSON + TXT + WebM + manifest -> CRC 검증된 eegsession ZIP -> 임시 파일 삭제
-
-Local eegsession ZIP 또는 legacy loose files
-  -> browser memory에서 ZIP 추출 또는 filename session pair
+Local camera WebM + raw EEG TXT + optional packet NDJSON
+  -> filename session pair
   -> video currentTime 기반 4초 raw window + 선택 카드 03-06
   -> 최대 3개 camera/raw/selected-card row
 ```
@@ -141,13 +138,7 @@ raw EEG에서 표준 5개 band를 직접 계산한다.
 `Signals`와 `Record`는 같은 페이지의 in-app tab이며 하나의 Web Serial 연결을
 공유한다. 별도 browser tab이 같은 serial port를 다시 열지 않는다.
 
-### 최종 출력 파일
-
-| 파일 | 규격 |
-|---|---|
-| `*.eegsession.zip` | 아래 네 component를 stored 방식으로 담은 standard ZIP, entry별 CRC-32 포함 |
-
-ZIP 내부 component:
+### 출력 파일
 
 | 파일 | 규격 |
 |---|---|
@@ -156,11 +147,8 @@ ZIP 내부 component:
 | `*-camera-100p.webm` | 134 x 100, 8 FPS, requested 50 kbps, audio 없음 |
 | `*-session.json` | 설정, 파일명, 시간, count, video bytes, parser stats, stop reason |
 
-Base name은 `YYYY-MM-DD_HHmmss_SSS` 형식이다. 녹화 중 component는 선택한
-폴더에 File System Access API로 직접 stream한다. stop 후 manifest를 쓴 다음
-`YYYY-MM-DD_HHmmss_SSS.eegsession.zip`을 만들고 다시 열어 filename과 CRC를
-검증한다. 검증 성공 후 네 component를 삭제하므로 최종적으로 ZIP 하나만 남는다.
-ZIP 생성/검증 실패 시 복구를 위해 component를 삭제하지 않는다.
+Base name은 `YYYY-MM-DD_HHmmss_SSS` 형식이다. 파일은 `Choose Folder`에서
+선택한 폴더에 File System Access API로 직접 쓴다.
 
 ### TGAM frame NDJSON
 
@@ -332,16 +320,12 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
   Raw EEG는 기존 896 px의 정확히 2/3이며 줄어든 299 px을 새 카드가 사용한다.
 - 상단 `03`, `04`, `05`, `06` segmented control은 모든 session의 세 번째 slot을 함께 변경한다.
 - Playback row는 최대 3개까지 세로로 쌓이며 narrow viewport에서는 세 pane을 1열로 배치한다.
-- `녹화 파일 불러오기` 아래에 TXT, NDJSON, WebM을 포함한 ZIP을 업로드하라는
-  안내를 표시한다.
+- `녹화 파일 불러오기` 아래에 같은 session의 TXT, NDJSON, WebM 세 파일을 함께
+  선택해야 한다는 안내를 표시한다.
 - 공통 재생, 일시정지, 처음부터, 모두 지우기와 session별 native video control/remove를 제공한다.
 
 ## Playback 데이터 규격
 
-- 기본 입력: recorder가 만든 `.eegsession.zip`, 최대 3개
-- ZIP 처리: browser memory에서 stored entry 추출 및 CRC-32 검증, server 전송 없음
-- ZIP 내부 필수 pair: camera WebM, raw EEG TXT, packet NDJSON
-- legacy 입력: 아래 suffix의 loose files도 계속 지원
 - pair key: `-camera-100p.webm` 또는 `-camera-240p.webm`, `-raw-eeg.txt`,
   optional `-tgam-packets.ndjson` 앞의 공통 filename stem
 - 최대 pair 수: 3
@@ -379,7 +363,6 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 | `public/tabs.js` | hash 기반 in-app view 전환 |
 | `public/recorder-core.js` | 녹화 상수, file name, frame/raw serialization |
 | `public/recorder.js` | 폴더, camera, TGAM frame, file writer, stop/finalize lifecycle |
-| `public/session-zip.js` | dependency-free stored ZIP 생성, CRC-32 검증, browser extraction |
 | `public/playback-core.js` | file pairing, TXT/NDJSON parse, playback window와 offline 카드 03/05/06 계산 |
 | `public/playback.js` | 최대 3개 video/raw EEG/선택 카드 playback rendering |
 | `public/style.css` | Signals, Record, Playback view style |
@@ -430,11 +413,8 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [x] Record tab 주요 label, 상태, 안내 및 오류 문구 한국어화
 - [x] 신호/녹화/재생 tab, TGAM 연결 및 Playback action button 한국어화
 - [x] camera 사양에서 녹화하지 않는 오디오 꺼짐 항목 제거
-- [x] Playback 불러오기 안내를 TXT/NDJSON/WebM 포함 ZIP 업로드 문구로 변경
+- [x] Playback 불러오기 안내에 TXT/NDJSON/WebM 세 파일 요구사항 표시
 - [x] `전체 재생`을 `재생`, `녹화 불러오기`를 `녹화 파일 불러오기`로 변경
-- [x] 네 component를 단일 `.eegsession.zip`으로 묶고 CRC 검증 후 임시 파일 삭제
-- [x] Playback에서 최대 3개 session ZIP을 browser-only로 추출해 기존 pair parser에 전달
-- [x] legacy loose TXT/NDJSON/WebM Playback 입력 유지
 - [x] 1,440 x 900 및 500 x 900 Playback/Record overflow와 responsive stack 확인
 - [x] `public/` 전용 GitHub Pages Actions workflow 추가
 
@@ -451,7 +431,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 - [ ] Chrome에서 recording folder permission과 지속적인 file write 확인
 - [ ] 실제 webcam permission, 134 x 100 WebM 재생, file size 확인
 - [ ] 실제 TGAM과 webcam 동시 30초/1분 recording의 자동 종료와 timestamp/count 확인
-- [ ] serial 또는 camera 중단 시 component와 session ZIP이 정상 finalize되는지 확인
+- [ ] serial 또는 camera 중단 시 세 파일과 manifest가 정상 finalize되는지 확인
 - [ ] Chrome native video seek 후 waveform 위치 변경을 수동 확인
 - [ ] 실제 3개 recording 동시 재생에서 video와 waveform rendering 성능 확인
 
@@ -466,7 +446,7 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
 5. 카드 03은 최초 2초 후 약 0.25초마다 갱신되고 카드 04는 실제 TGAM packet을 따라 갱신된다.
 6. 모든 visibility checkbox가 대응 카드만 표시하거나 숨긴다.
 7. disconnect 후 stale live 값이 현재 값처럼 표시되지 않는다.
-8. Record tab에서 30초/1분 선택 후 단일 session ZIP을 만들고 재생에서 다시 열 수 있다.
+8. Record tab에서 30초/1분 선택 후 네 출력 파일을 만들고 자동 종료 후 다시 열 수 있다.
 9. 1분 동시 녹화에서 browser memory가 지속적으로 증가하지 않는다.
 10. Playback에서 최대 3개 session을 열고 각 video seek에 raw EEG와 선택 카드 03-06이 동기화된다.
 11. `npm test`가 통과한다.
@@ -488,10 +468,6 @@ UI에는 카드 번호만 표시한다. 아래 이름은 운영자와 개발자�
   secure context가 필요하다.
 - writable stream이 close되기 전 browser/OS가 비정상 종료되면 현재 session file이
   불완전할 수 있다.
-- ZIP finalization은 네 component와 archive Blob을 일시적으로 memory에 올린다. 현재
-  30초/1분 및 100p video 범위에서는 허용하지만 실제 1분 session에서 memory를 확인해야 한다.
-- 앱이 만드는 ZIP은 dependency-free stored entry만 사용한다. 다른 도구에서 만든
-  deflate/Zip64/encrypted archive는 Playback에서 지원하지 않는다.
 - MediaRecorder의 실제 codec/bitrate는 browser가 요청과 다르게 선택할 수 있다.
 - Playback file pairing은 현재 filename suffix 규격에 의존한다.
 - 이전 recording의 WebM/TXT만 선택하면 카드 03/05/06은 사용할 수 있지만 native

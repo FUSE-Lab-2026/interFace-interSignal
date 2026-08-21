@@ -4,6 +4,7 @@ const RecorderCore = require("../public/recorder-core");
 const baseName = RecorderCore.createBaseName(new Date(2026, 7, 11, 9, 7, 5, 42));
 assert.equal(baseName, "2026-08-11_090705_042");
 assert.deepEqual(RecorderCore.createFileNames(baseName), {
+  archive: "2026-08-11_090705_042.eegsession.zip",
   packets: "2026-08-11_090705_042-tgam-packets.ndjson",
   raw: "2026-08-11_090705_042-raw-eeg.txt",
   video: "2026-08-11_090705_042-camera-100p.webm",

@@ -18,10 +18,7 @@ const TGAMSessionRecorder = (() => {
     raw: document.querySelector("#record-raw"),
     folder: document.querySelector("#record-folder"),
     message: document.querySelector("#record-message"),
-    packetsFile: document.querySelector("#packets-file"),
-    rawFile: document.querySelector("#raw-file"),
-    videoFile: document.querySelector("#video-file"),
-    manifestFile: document.querySelector("#manifest-file"),
+    archiveFile: document.querySelector("#archive-file"),
   };
 
   let directoryHandle = null;
@@ -423,10 +420,7 @@ const TGAMSessionRecorder = (() => {
       cameraInput: cameraInputSettings(),
     };
 
-    elements.packetsFile.textContent = files.packets;
-    elements.rawFile.textContent = files.raw;
-    elements.videoFile.textContent = files.video;
-    elements.manifestFile.textContent = files.manifest;
+    elements.archiveFile.textContent = files.archive;
 
     try {
       queues = {
@@ -503,6 +497,42 @@ const TGAMSessionRecorder = (() => {
     const writable = await fileHandle.createWritable();
     await writable.write(`${JSON.stringify(manifest, null, 2)}\n`);
     await writable.close();
+  };
+
+  const createSessionArchive = async (files) => {
+    const componentNames = [files.packets, files.raw, files.video, files.manifest];
+    const entries = [];
+    for (const name of componentNames) {
+      const handle = await directoryHandle.getFileHandle(name);
+      entries.push({ name, data: await handle.getFile() });
+    }
+
+    const archive = await TGAMSessionZip.createArchive(entries);
+    const archiveHandle = await directoryHandle.getFileHandle(files.archive, { create: true });
+    const writable = await archiveHandle.createWritable();
+    try {
+      await writable.write(archive);
+      await writable.close();
+    } catch (error) {
+      try {
+        await writable.abort();
+      } catch (_) {
+        // The writable may already be closed after a failed write.
+      }
+      throw error;
+    }
+
+    const savedArchive = await archiveHandle.getFile();
+    const extracted = await TGAMSessionZip.extractArchive(savedArchive);
+    const extractedNames = new Set(extracted.map((entry) => entry.name));
+    if (componentNames.some((name) => !extractedNames.has(name))) {
+      throw new Error("ZIP 파일에 필요한 녹화 파일이 모두 들어 있지 않습니다.");
+    }
+    if (typeof directoryHandle.removeEntry !== "function") {
+      throw new Error("이 브라우저에서는 임시 녹화 파일을 정리할 수 없습니다.");
+    }
+    for (const name of componentNames) await directoryHandle.removeEntry(name);
+    return savedArchive.size;
   };
 
   const performStop = async (reason) => {
@@ -585,9 +615,14 @@ const TGAMSessionRecorder = (() => {
       },
     };
     await writeManifest(manifest);
+    setMessage("녹화 파일을 하나의 ZIP 파일로 묶고 있습니다...");
+    const archiveBytes = await createSessionArchive(session.files);
     elements.elapsed.textContent = formatRemaining(session.plannedDurationMs - durationMs);
     setState("saved");
-    setMessage(`TGAM 패킷 ${session.frameCount}개와 Raw EEG 샘플 ${session.rawSampleCount}개를 저장했습니다.`);
+    setMessage(
+      `TGAM 패킷 ${session.frameCount}개와 Raw EEG 샘플 ${session.rawSampleCount}개를 `
+      + `${session.files.archive} 파일 하나로 저장했습니다 (${Math.ceil(archiveBytes / 1024)} KB).`
+    );
   };
 
   const stopRecording = (reason = "user") => {

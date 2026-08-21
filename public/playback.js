@@ -32,6 +32,29 @@ const TGAMPlayback = (() => {
   let animationFrame = null;
   let selectedCard = "bands";
 
+  const mimeTypeForName = (name) => {
+    if (/\.webm$/i.test(name)) return "video/webm";
+    if (/\.ndjson$/i.test(name)) return "application/x-ndjson";
+    if (/\.json$/i.test(name)) return "application/json";
+    if (/\.txt$/i.test(name)) return "text/plain";
+    return "application/octet-stream";
+  };
+
+  const expandSelectedFiles = async (fileList) => {
+    const expanded = [];
+    for (const file of Array.from(fileList || [])) {
+      if (!/\.zip$/i.test(file.name)) {
+        expanded.push(file);
+        continue;
+      }
+      const entries = await TGAMSessionZip.extractArchive(file);
+      for (const entry of entries) {
+        expanded.push(new File([entry.data], entry.name, { type: mimeTypeForName(entry.name) }));
+      }
+    }
+    return expanded;
+  };
+
   const setMessage = (message, isError = false) => {
     elements.message.textContent = message;
     elements.message.classList.toggle("is-error", isError);
@@ -151,7 +174,7 @@ const TGAMPlayback = (() => {
   const drawBands = (recording, point) => {
     const { context, width, height } = prepareFeatureCanvas(recording);
     if (!point) {
-      drawUnavailable(context, width, height, "2 S WARM-UP");
+      drawUnavailable(context, width, height, "2초 준비 중");
       return;
     }
     const insetX = 14;
@@ -184,7 +207,7 @@ const TGAMPlayback = (() => {
   const drawESense = (recording, point) => {
     const { context, width, height } = prepareFeatureCanvas(recording);
     if (!point || (!Number.isFinite(point.attention) && !Number.isFinite(point.meditation))) {
-      drawUnavailable(context, width, height, recording.packetSeries.length ? "NO A / M DATA" : "NDJSON REQUIRED");
+      drawUnavailable(context, width, height, recording.packetSeries.length ? "A / M 데이터 없음" : "NDJSON 필요");
       return;
     }
     const values = [point.attention, point.meditation];
@@ -296,7 +319,7 @@ const TGAMPlayback = (() => {
     recording.element.remove();
     const index = recordings.indexOf(recording);
     if (index !== -1) recordings.splice(index, 1);
-    setMessage(recordings.length ? "Playback set updated." : "No recordings loaded.");
+    setMessage(recordings.length ? "재생 목록을 변경했습니다." : "불러온 녹화가 없습니다.");
     updateControls();
   };
 
@@ -323,7 +346,7 @@ const TGAMPlayback = (() => {
     cameraPane.className = "playback-camera";
     const cameraLabel = document.createElement("span");
     cameraLabel.className = "playback-label";
-    cameraLabel.textContent = "CAMERA";
+    cameraLabel.textContent = "카메라";
     const video = document.createElement("video");
     video.controls = true;
     video.playsInline = true;
@@ -376,7 +399,7 @@ const TGAMPlayback = (() => {
     };
     remove.addEventListener("click", () => removeRecording(recording));
     video.addEventListener("error", () => {
-      setMessage(`Could not play ${pair.video.name}.`, true);
+      setMessage(`${pair.video.name} 영상을 재생할 수 없습니다.`, true);
     });
     return recording;
   };
@@ -384,17 +407,26 @@ const TGAMPlayback = (() => {
   const addFiles = async (fileList) => {
     const availableSlots = MAX_RECORDINGS - recordings.length;
     if (availableSlots <= 0) {
-      setMessage(`A maximum of ${MAX_RECORDINGS} recordings can be loaded.`, true);
+      setMessage(`녹화는 최대 ${MAX_RECORDINGS}개까지 불러올 수 있습니다.`, true);
       return;
     }
-    const paired = pairRecordingFiles(fileList);
+    let expandedFiles;
+    try {
+      expandedFiles = await expandSelectedFiles(fileList);
+    } catch (error) {
+      setMessage(`ZIP 파일을 열 수 없습니다: ${error.message || error}`, true);
+      return;
+    }
+    const paired = pairRecordingFiles(expandedFiles);
     const existingKeys = new Set(recordings.map((recording) => recording.key));
     const candidates = paired.complete.filter((pair) => {
       return !existingKeys.has(pair.key) && !loadingKeys.has(pair.key);
     });
     if (!candidates.length) {
       setMessage(
-        paired.complete.length ? "That recording is already loaded or loading." : "Select matching camera WebM and raw EEG TXT files.",
+        paired.complete.length
+          ? "이미 불러왔거나 불러오는 중인 녹화입니다."
+          : "녹화에서 저장한 ZIP 파일을 선택해 주세요.",
         !paired.complete.length
       );
       return;
@@ -405,7 +437,7 @@ const TGAMPlayback = (() => {
       loadingKeys.add(pair.key);
       try {
         const parsed = parseRawEegText(await pair.raw.text());
-        if (parsed.samples.length < 2) throw new Error(`${pair.raw.name} has no usable raw EEG samples.`);
+        if (parsed.samples.length < 2) throw new Error(`${pair.raw.name}에 사용할 수 있는 Raw EEG 샘플이 없습니다.`);
         const packetSeries = pair.packets ? parsePacketNdjson(await pair.packets.text()) : [];
         const videoUrl = URL.createObjectURL(pair.video);
         const recording = createRecordingElement(pair, parsed, packetSeries, videoUrl);
@@ -420,7 +452,11 @@ const TGAMPlayback = (() => {
     }
     if (added) {
       const omitted = candidates.length - added;
-      setMessage(omitted > 0 ? `Loaded ${added}; ${omitted} exceeded the three-recording limit.` : `Loaded ${added} recording${added === 1 ? "" : "s"}.`);
+      setMessage(
+        omitted > 0
+          ? `${added}개를 불러왔습니다. ${omitted}개는 최대 녹화 수를 초과했습니다.`
+          : `녹화 ${added}개를 불러왔습니다.`
+      );
     }
     updateControls();
   };
@@ -431,15 +467,15 @@ const TGAMPlayback = (() => {
       return recording.video.play();
     }));
     if (results.some((result) => result.status === "rejected")) {
-      setMessage("One or more videos could not start.", true);
+      setMessage("일부 영상을 재생할 수 없습니다.", true);
     } else {
-      setMessage("Playing all loaded recordings.");
+      setMessage("불러온 녹화를 재생합니다.");
     }
   };
 
   const pauseAll = () => {
     recordings.forEach((recording) => recording.video.pause());
-    setMessage("Playback paused.");
+    setMessage("재생을 일시정지했습니다.");
   };
 
   const restartAll = () => {
@@ -449,12 +485,12 @@ const TGAMPlayback = (() => {
       drawWaveform(recording);
       drawFeature(recording);
     });
-    setMessage("Playback returned to the start.");
+    setMessage("재생 위치를 처음으로 되돌렸습니다.");
   };
 
   const clearAll = () => {
     for (const recording of [...recordings]) removeRecording(recording);
-    setMessage("No recordings loaded.");
+    setMessage("불러온 녹화가 없습니다.");
   };
 
   elements.add.addEventListener("click", () => elements.fileInput.click());

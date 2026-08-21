@@ -216,20 +216,40 @@ reference: <https://support.neurosky.com/kb/science/how-to-convert-raw-values-to
   statistics at start and stop.
 - The manifest is written after all three stream files close successfully.
 
+### Session ZIP
+
+- Final filename: `YYYY-MM-DD_HHmmss_SSS.eegsession.zip`
+- Entries: packet NDJSON, raw EEG TXT, camera WebM, and session JSON manifest.
+- The archive uses standard ZIP stored entries without compression and includes
+  CRC-32 for every entry. No external ZIP library or server is used.
+- The three stream files are written directly to disk during recording. After
+  they close and the manifest is written, the browser reads the four components,
+  creates the ZIP, reopens it, and verifies every required filename and CRC.
+- Temporary components are deleted only after validation succeeds. If archive
+  creation or validation fails, they remain in the selected folder for recovery.
+- Finalization temporarily holds the component bytes and ZIP Blob in browser
+  memory. Recording duration remains limited to 30 or 60 seconds.
+
 ### Stop behavior
 
-- Reaching 30 seconds or 1 minute finalizes every stream and writes the manifest.
+- Reaching 30 seconds or 1 minute finalizes every stream, writes the manifest,
+  and creates the session ZIP.
 - `녹화 중지` can finalize a session before its planned duration.
 - Serial disconnect, camera end, video error, or file-write error initiates stop.
 - Closing or reloading the page while recording triggers a browser warning.
-- A browser/OS crash before writable streams close can leave the current session
-  incomplete.
+- A browser/OS crash before ZIP validation can leave recoverable component files
+  or an incomplete current session in the selected folder.
 
 ## Recording playback
 
 ### Input pairing
 
-- Playback accepts up to three complete camera/raw file pairs with optional packet NDJSON.
+- Playback accepts up to three `.eegsession.zip` files produced by the recorder.
+- Each ZIP is extracted and CRC-validated locally in browser memory. ZIP contents
+  are not uploaded or sent to `server.js`.
+- The application-created ZIP uses stored entries. Arbitrary third-party ZIP
+  compression methods are not supported.
+- Legacy loose camera/raw file pairs with optional packet NDJSON remain accepted.
 - Raw EEG filename: `<session>-raw-eeg.txt`
 - Camera filename: `<session>-camera-100p.webm`; the earlier
   `<session>-camera-240p.webm` form is also accepted.
